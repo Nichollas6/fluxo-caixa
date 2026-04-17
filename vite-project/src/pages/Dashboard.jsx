@@ -14,13 +14,19 @@ export default function Dashboard() {
   const [dados, setDados] = useState([]);
   const [mes, setMes] = useState("");
 
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  // 🔥 URL DO BACKEND
   const API = "https://fluxo-caixa-back.onrender.com";
+
+  const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     carregar();
+
+    // 🔥 TEMPO REAL (auto refresh)
+    const intervalo = setInterval(() => {
+      carregar();
+    }, 3000);
+
+    return () => clearInterval(intervalo);
   }, [mes]);
 
   async function carregar() {
@@ -28,19 +34,19 @@ export default function Dashboard() {
       const res = await axios.get(`${API}/dashboard?mes=${mes}`);
       setDados(res.data);
     } catch (err) {
-      console.log("Erro ao carregar dashboard:", err);
+      console.log("Erro dashboard:", err);
     }
   }
 
   const totalEntrada = dados.reduce((acc, item) => acc + item.entrada, 0);
   const totalSaida = dados.reduce((acc, item) => acc + item.saida, 0);
+  const lucro = totalEntrada - totalSaida;
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
 
-      {/* HEADER */}
       <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-bold">📊 ERP Dashboard</h1>
+        <h1 className="text-2xl font-bold">📊 Dashboard</h1>
 
         <div className="flex gap-3 items-center">
           <span>👤 {user?.email}</span>
@@ -49,18 +55,16 @@ export default function Dashboard() {
             className="border p-2 rounded"
             onChange={(e) => setMes(e.target.value)}
           >
-            <option value="">Todos meses</option>
+            <option value="">Todos</option>
             <option value="1">Janeiro</option>
             <option value="2">Fevereiro</option>
             <option value="3">Março</option>
-            <option value="4">Abril</option>
-            <option value="5">Maio</option>
           </select>
         </div>
       </div>
 
       {/* CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
 
         <div className="bg-white p-4 rounded shadow">
           <p>Entradas</p>
@@ -79,7 +83,7 @@ export default function Dashboard() {
         <div className="bg-white p-4 rounded shadow">
           <p>Lucro</p>
           <h2 className="text-blue-600 text-xl font-bold">
-            R$ {totalEntrada - totalSaida}
+            R$ {lucro}
           </h2>
         </div>
 
@@ -93,8 +97,8 @@ export default function Dashboard() {
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar dataKey="entrada" name="Entradas" />
-            <Bar dataKey="saida" name="Saídas" />
+            <Bar dataKey="entrada" fill="#22c55e" />
+            <Bar dataKey="saida" fill="#ef4444" />
           </BarChart>
         </ResponsiveContainer>
       </div>

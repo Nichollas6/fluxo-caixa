@@ -11,39 +11,39 @@ import Financeiro from "./pages/Financeiro";
 import Vendas from "./pages/Vendas";
 import Usuarios from "./pages/Usuarios";
 
-// 🔐 PROTEÇÃO DE ROTA
+// 🔐 PROTEÇÃO
 function PrivateRoute({ children }) {
   const user = JSON.parse(localStorage.getItem("user"));
-
   return user ? children : <Navigate to="/login" />;
 }
 
-// 🔐 ADMIN ONLY
+// 🔐 ADMIN
 function AdminRoute({ children }) {
   const user = JSON.parse(localStorage.getItem("user"));
-
-  return user?.tipo === "admin" ? children : <Navigate to="/" />;
+  return user?.tipo === "admin" ? children : <Navigate to="/dashboard" />;
 }
 
-// 🔥 LAYOUT COM SIDEBAR
+// 🔥 LAYOUT
 function Layout() {
   return (
     <div className="flex min-h-screen">
 
-      {/* SIDEBAR */}
       <Sidebar />
 
-      {/* CONTEÚDO */}
       <div className="flex-1 p-4">
         <Routes>
 
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/vendas" element={<Vendas />} />
-          <Route path="/produtos" element={<Produtos />} />
-          <Route path="/clientes" element={<Clientes />} />
-          <Route path="/caixa" element={<Caixa />} />
+          {/* 🔁 REDIRECIONA */}
+          <Route path="/" element={<Navigate to="/dashboard" />} />
 
-          {/* 🔐 SOMENTE ADMIN */}
+          {/* 🔐 ROTAS PROTEGIDAS */}
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/vendas" element={<PrivateRoute><Vendas /></PrivateRoute>} />
+          <Route path="/produtos" element={<PrivateRoute><Produtos /></PrivateRoute>} />
+          <Route path="/clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
+          <Route path="/caixa" element={<PrivateRoute><Caixa /></PrivateRoute>} />
+
+          {/* 🔐 ADMIN */}
           <Route path="/financeiro" element={
             <AdminRoute>
               <Financeiro />
@@ -71,7 +71,7 @@ export default function App() {
         {/* LOGIN */}
         <Route path="/login" element={<Login />} />
 
-        {/* SISTEMA PROTEGIDO */}
+        {/* SISTEMA */}
         <Route path="/*" element={
           <PrivateRoute>
             <Layout />
