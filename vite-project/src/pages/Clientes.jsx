@@ -11,58 +11,66 @@ export default function Clientes() {
 
   const [historico, setHistorico] = useState([]);
 
-  const API = "http://localhost:3000";
+  // 🔥 BACKEND ONLINE
+  const API = "https://fluxo-caixa-back.onrender.com";
 
   useEffect(() => {
     carregar();
   }, []);
 
   async function carregar() {
-    const res = await axios.get(`${API}/clientes`);
-    setClientes(res.data);
+    try {
+      const res = await axios.get(`${API}/clientes`);
+      setClientes(res.data);
+    } catch (err) {
+      console.log("Erro ao carregar clientes:", err);
+    }
   }
 
   async function salvar() {
-  console.log("CLICOU SALVAR CLIENTE 🔥");
+    console.log("CLICOU SALVAR CLIENTE 🔥");
 
-  try {
-    if (!nome) {
-      alert("Digite o nome do cliente");
-      return;
+    try {
+      if (!nome.trim()) {
+        alert("Digite o nome do cliente");
+        return;
+      }
+
+      if (editando) {
+        await axios.put(`${API}/clientes/${editando}`, {
+          nome: nome.trim(),
+          telefone: telefone.trim()
+        });
+
+        alert("Cliente atualizado 🔥");
+
+      } else {
+        await axios.post(`${API}/clientes`, {
+          nome: nome.trim(),
+          telefone: telefone.trim()
+        });
+
+        alert("Cliente criado 🔥");
+      }
+
+      limpar();
+      carregar();
+
+    } catch (err) {
+      console.log("ERRO CLIENTE:", err.response?.data);
+      alert("Erro ao salvar cliente");
     }
-
-    if (editando) {
-      // ✏️ EDITAR
-      await axios.put(`${API}/clientes/${editando}`, {
-        nome,
-        telefone
-      });
-
-      alert("Cliente atualizado 🔥");
-
-    } else {
-      // ➕ NOVO
-      await axios.post(`${API}/clientes`, {
-        nome,
-        telefone
-      });
-
-      alert("Cliente criado 🔥");
-    }
-
-    limpar();
-    carregar();
-
-  } catch (err) {
-    console.log("ERRO CLIENTE:", err);
-    alert("Erro ao salvar cliente");
   }
-}
+
   async function excluir(id) {
     if (!confirm("Excluir cliente?")) return;
 
-    await axios.delete(`${API}/clientes/${id}`);
-    carregar();
+    try {
+      await axios.delete(`${API}/clientes/${id}`);
+      carregar();
+    } catch (err) {
+      console.log("Erro ao excluir:", err);
+    }
   }
 
   function editar(c) {
@@ -79,9 +87,13 @@ export default function Clientes() {
 
   // 📋 histórico
   async function verHistorico(nomeCliente) {
-    const res = await axios.get(`${API}/vendas`);
-    const lista = res.data.filter(v => v.cliente === nomeCliente);
-    setHistorico(lista);
+    try {
+      const res = await axios.get(`${API}/venda`);
+      const lista = res.data.filter(v => v.cliente === nomeCliente);
+      setHistorico(lista);
+    } catch (err) {
+      console.log("Erro histórico:", err);
+    }
   }
 
   // 🔎 busca

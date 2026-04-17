@@ -6,7 +6,8 @@ export default function Caixa() {
   const [relatorio, setRelatorio] = useState(null);
   const [caixaAberto, setCaixaAberto] = useState(false);
 
-  const API = "http://localhost:3000";
+  // 🔥 BACKEND ONLINE
+  const API = "https://fluxo-caixa-back.onrender.com";
 
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -19,7 +20,7 @@ export default function Caixa() {
           setCaixaAberto(true);
         }
       } catch (err) {
-        console.log(err);
+        console.log("Erro ao verificar caixa:", err);
       }
     }
 
@@ -41,8 +42,9 @@ export default function Caixa() {
 
       alert("Caixa aberto 🔥");
       setCaixaAberto(true);
+
     } catch (err) {
-      console.log(err);
+      console.log("Erro abrir caixa:", err.response?.data);
       alert("Erro ao abrir caixa");
     }
   }
@@ -56,8 +58,9 @@ export default function Caixa() {
       setCaixaAberto(false);
 
       alert("Caixa fechado 🔥");
+
     } catch (err) {
-      console.log(err);
+      console.log("Erro fechar caixa:", err.response?.data);
       alert("Erro ao fechar caixa");
     }
   }
@@ -123,7 +126,7 @@ export default function Caixa() {
           <hr className="my-3" />
 
           <p className="font-bold">
-            Saldo final: R$ {relatorio.caixa.saldoFinal}
+            Saldo final: R$ {relatorio.caixa?.saldoFinal}
           </p>
 
         </div>

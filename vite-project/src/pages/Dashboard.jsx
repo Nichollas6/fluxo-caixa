@@ -13,18 +13,23 @@ import {
 export default function Dashboard() {
   const [dados, setDados] = useState([]);
   const [mes, setMes] = useState("");
+
   const user = JSON.parse(localStorage.getItem("user"));
+
+  // 🔥 URL DO BACKEND
+  const API = "https://fluxo-caixa-back.onrender.com";
 
   useEffect(() => {
     carregar();
   }, [mes]);
 
   async function carregar() {
-    const res = await axios.get(
-      `http://localhost:3000/dashboard?mes=${mes}`
-    );
-
-    setDados(res.data);
+    try {
+      const res = await axios.get(`${API}/dashboard?mes=${mes}`);
+      setDados(res.data);
+    } catch (err) {
+      console.log("Erro ao carregar dashboard:", err);
+    }
   }
 
   const totalEntrada = dados.reduce((acc, item) => acc + item.entrada, 0);
@@ -55,7 +60,7 @@ export default function Dashboard() {
       </div>
 
       {/* CARDS */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 
         <div className="bg-white p-4 rounded shadow">
           <p>Entradas</p>
@@ -88,8 +93,8 @@ export default function Dashboard() {
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar dataKey="entrada" fill="#22c55e" name="Entradas" />
-            <Bar dataKey="saida" fill="#ef4444" name="Saídas" />
+            <Bar dataKey="entrada" name="Entradas" />
+            <Bar dataKey="saida" name="Saídas" />
           </BarChart>
         </ResponsiveContainer>
       </div>

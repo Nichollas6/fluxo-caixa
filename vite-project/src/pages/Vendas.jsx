@@ -9,7 +9,7 @@ export default function Vendas() {
   const [cliente, setCliente] = useState("");
   const [quantidade, setQuantidade] = useState("");
 
-  const API = "http://localhost:3000";
+  const API = "https://fluxo-caixa-back.onrender.com";
 
   // 🔥 carregar dados
   useEffect(() => {

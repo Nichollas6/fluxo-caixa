@@ -8,7 +8,7 @@ export default function Usuarios() {
   const [senha, setSenha] = useState("");
   const [tipo, setTipo] = useState("vendedor");
 
-  const API = "http://localhost:3000";
+  const API = "https://fluxo-caixa-back.onrender.com";
 
   useEffect(() => {
     carregar();

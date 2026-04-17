@@ -21,7 +21,7 @@ export default function Produtos() {
   const [custo, setCusto] = useState("");
   const [estoque, setEstoque] = useState("");
 
-  const API = "http://localhost:3000";
+  const API = "https://fluxo-caixa-back.onrender.com";
 
   useEffect(() => {
     carregar();

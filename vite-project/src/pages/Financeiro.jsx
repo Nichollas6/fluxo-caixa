@@ -6,7 +6,7 @@ export default function Financeiro() {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
 
-  const API = "http://localhost:3000";
+  const API = "https://fluxo-caixa-back.onrender.com";
 
   useEffect(() => {
     carregar();
