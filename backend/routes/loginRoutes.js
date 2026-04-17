@@ -5,18 +5,39 @@ const Usuario = require("../models/Usuario");
 // 🔐 LOGIN
 router.post("/", async (req, res) => {
   try {
-    const { email, senha } = req.body;
+    let { email, senha } = req.body;
 
-    const user = await Usuario.findOne({ email, senha });
+    // 🔧 limpar dados
+    email = email?.trim().toLowerCase();
+    senha = senha?.trim();
 
-    if (!user) {
-      return res.status(401).json({ erro: "Login inválido" });
+    // 🚨 validação básica
+    if (!email || !senha) {
+      return res.status(400).json({ erro: "Preencha todos os campos" });
     }
 
-    res.json(user);
+    // 🔎 busca usuário pelo email
+    const user = await Usuario.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({ erro: "Usuário não encontrado" });
+    }
+
+    // 🔐 valida senha
+    if (user.senha !== senha) {
+      return res.status(401).json({ erro: "Senha incorreta" });
+    }
+
+    // ✅ sucesso
+    res.json({
+      _id: user._id,
+      email: user.email,
+      tipo: user.tipo
+    });
+
   } catch (err) {
-    console.log(err);
-    res.status(500).json("Erro no servidor");
+    console.log("Erro no login:", err);
+    res.status(500).json({ erro: "Erro no servidor" });
   }
 });
 
