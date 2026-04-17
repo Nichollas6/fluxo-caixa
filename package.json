@@ -1,31 +1,12 @@
 {
-<<<<<<< HEAD
   "name": "fluxo-caixa",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "type": "commonjs",
   "scripts": {
     "dev": "concurrently \"cd backend && node server.js\" \"cd vite-project && npm run dev\""
   },
-  "dependencies": {
-    "concurrently": "^9.2.1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
-=======
-  "name": "fluxo-de-caixa-mk-imports",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "concurrently \"cd backend && node server.js\" \"cd vite-project && npm run dev\""
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "concurrently": "^9.2.1"
   }
->>>>>>> 36db1477aee007824b6cf9c6a683a7fa1aad7338
 }
