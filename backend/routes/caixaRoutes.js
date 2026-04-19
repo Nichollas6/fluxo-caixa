@@ -3,7 +3,6 @@ const router = express.Router();
 const Caixa = require("../models/Caixa");
 const Venda = require("../models/Venda");
 
-
 // 🔍 BUSCAR CAIXA ABERTO
 router.get("/", async (req, res) => {
   try {
@@ -14,7 +13,6 @@ router.get("/", async (req, res) => {
     res.status(500).json("Erro ao buscar caixa");
   }
 });
-
 
 // 🟢 ABRIR CAIXA
 router.post("/abrir", async (req, res) => {
@@ -31,12 +29,15 @@ router.post("/abrir", async (req, res) => {
       return res.status(400).json("Já existe caixa aberto");
     }
 
+    const saldoInicial = Number(valor);
+
     const caixa = await Caixa.create({
       abertoPor: usuario,
-      saldoInicial: Number(valor),
-      saldoFinal: 0,
-      status: "aberto",
-      dataAbertura: new Date()
+      saldoInicial,
+      saldoAtual: saldoInicial, // 🔥 CORRETO
+      entradas: 0,
+      saidas: 0,
+      status: "aberto"
     });
 
     res.json(caixa);
@@ -47,7 +48,6 @@ router.post("/abrir", async (req, res) => {
   }
 });
 
-
 // 🔴 FECHAR CAIXA + RELATÓRIO
 router.post("/fechar", async (req, res) => {
   try {
@@ -57,30 +57,31 @@ router.post("/fechar", async (req, res) => {
       return res.status(400).json("Nenhum caixa aberto");
     }
 
-    // 🔥 intervalo do caixa
     const inicio = new Date(caixa.dataAbertura);
     const fim = new Date();
 
-    // 📊 vendas do período
     const vendas = await Venda.find({
       data: { $gte: inicio, $lte: fim }
     });
 
-    // 💰 cálculos seguros (COM ??)
     const totalVendas = vendas.reduce(
-      (acc, v) => acc + Number(v.valor ?? 0),
+      (acc, v) => acc + Number(v.valor || 0),
       0
     );
 
     const lucro = vendas.reduce(
-      (acc, v) => acc + Number(v.lucro ?? 0),
+      (acc, v) => acc + Number(v.lucro || 0),
       0
     );
 
-    // 🧾 atualização do caixa
+    // 🔥 ATUALIZAÇÃO CORRETA
     caixa.totalVendas = totalVendas;
     caixa.lucro = lucro;
-    caixa.saldoFinal = Number(caixa.saldoInicial ?? 0) + totalVendas;
+
+    caixa.saldoAtual =
+      Number(caixa.saldoInicial || 0) +
+      totalVendas -
+      Number(caixa.saidas || 0);
 
     caixa.status = "fechado";
     caixa.dataFechamento = fim;
@@ -100,8 +101,7 @@ router.post("/fechar", async (req, res) => {
   }
 });
 
-
-// 📜 HISTÓRICO DE CAIXAS
+// 📜 HISTÓRICO
 router.get("/historico", async (req, res) => {
   try {
     const lista = await Caixa.find().sort({ dataAbertura: -1 });
