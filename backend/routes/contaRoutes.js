@@ -9,7 +9,7 @@ const CaixaSchema = new mongoose.Schema({
     default: "aberto"
   },
 
-  saldoInicial: { type: Number, required: true },
+  saldoInicial: { type: Number, required: true, default: 0 },
 
   saldoAtual: { type: Number, default: 0 },
 
@@ -22,4 +22,6 @@ const CaixaSchema = new mongoose.Schema({
   dataFechamento: Date
 });
 
-module.exports = mongoose.model("Caixa", CaixaSchema);
+// 🔥 IMPORTANTE (evita crash no Render e hot reload)
+module.exports =
+  mongoose.models.Caixa || mongoose.model("Caixa", CaixaSchema);

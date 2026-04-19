@@ -1,51 +1,28 @@
 const mongoose = require("mongoose");
 
-const CaixaSchema = new mongoose.Schema(
-  {
-    abertoPor: {
-      type: String,
-      required: true
-    },
+const CaixaSchema = new mongoose.Schema({
+  abertoPor: String,
 
-    status: {
-      type: String,
-      enum: ["aberto", "fechado"],
-      default: "aberto"
-    },
-
-    saldoInicial: {
-      type: Number,
-      required: true,
-      default: 0
-    },
-
-    saldoFinal: {
-      type: Number,
-      default: 0
-    },
-
-    totalVendas: {
-      type: Number,
-      default: 0
-    },
-
-    lucro: {
-      type: Number,
-      default: 0
-    },
-
-    dataAbertura: {
-      type: Date,
-      default: Date.now
-    },
-
-    dataFechamento: {
-      type: Date
-    }
+  status: {
+    type: String,
+    enum: ["aberto", "fechado"],
+    default: "aberto"
   },
-  {
-    timestamps: true
-  }
-);
 
-module.exports = mongoose.model("Caixa", CaixaSchema);
+  saldoInicial: { type: Number, required: true, default: 0 },
+
+  saldoAtual: { type: Number, default: 0 },
+
+  entradas: { type: Number, default: 0 },
+  saidas: { type: Number, default: 0 },
+
+  totalVendas: { type: Number, default: 0 },
+  lucro: { type: Number, default: 0 },
+
+  dataAbertura: { type: Date, default: Date.now },
+  dataFechamento: Date
+});
+
+// 🔥 EVITA ERRO NO RENDER / RELOAD
+module.exports =
+  mongoose.models.Caixa || mongoose.model("Caixa", CaixaSchema);

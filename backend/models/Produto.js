@@ -5,7 +5,7 @@ const ProdutoSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    unique: true
+    unique: true // 👈 mantém só isso
   },
 
   preco: {
@@ -57,7 +57,7 @@ ProdutoSchema.virtual("lucroUnitario").get(function () {
   return this.preco - this.custo;
 });
 
-// ⚡ índice
-ProdutoSchema.index({ nome: 1 });
+// ❌ REMOVER ISSO:
+// ProdutoSchema.index({ nome: 1 });
 
 module.exports = mongoose.model("Produto", ProdutoSchema);

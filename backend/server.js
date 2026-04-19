@@ -3,16 +3,16 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+
 const app = express();
 
-// 🔥 middlewares
-app.use(cors({ origin: "*" }));
+app.use(cors());
 app.use(express.json());
 
-// 🔗 conexão Mongo (Render usa variável)
+// 🔥 CONEXÃO
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("🔥 Banco conectado"))
-  .catch(err => console.log("Erro Mongo:", err));
+  .then(() => console.log("🔥 Mongo conectado"))
+  .catch(err => console.log(err));
 
 // 📦 ROTAS
 app.use("/produtos", require("./routes/produtoRoutes"));
@@ -24,9 +24,8 @@ app.use("/usuarios", require("./routes/usuarioRoutes"));
 app.use("/login", require("./routes/loginRoutes"));
 app.use("/dashboard", require("./routes/dashboardRoutes"));
 
-// 🚀 PORTA DINÂMICA (OBRIGATÓRIO NO RENDER)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log("🚀 Rodando na porta " + PORT);
 });

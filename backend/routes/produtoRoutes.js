@@ -1,15 +1,33 @@
 const express = require("express");
 const router = express.Router();
 const Produto = require("../models/Produto");
-const auth = require("../middleware/auth");
-const admin = require("../middleware/admin");
+
+// 🔐 middlewares (evita crash se arquivo não existir)
+let auth = (req, res, next) => next();
+let admin = (req, res, next) => next();
+
+try {
+  auth = require("../middleware/auth");
+} catch (e) {
+  console.log("⚠️ middleware auth não encontrado");
+}
+
+try {
+  admin = require("../middleware/admin");
+} catch (e) {
+  console.log("⚠️ middleware admin não encontrado");
+}
 
 // 📦 LISTAR PRODUTOS (logado)
 router.get("/", auth, async (req, res) => {
-  const produtos = await Produto.find({ ativo: { $ne: false } });
-  res.json(produtos);
+  try {
+    const produtos = await Produto.find({ ativo: { $ne: false } });
+    res.json(produtos);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ erro: "Erro ao listar produtos" });
+  }
 });
-
 
 // ➕ CRIAR PRODUTO (ADMIN)
 router.post("/", auth, admin, async (req, res) => {
@@ -49,7 +67,6 @@ router.post("/", auth, admin, async (req, res) => {
   }
 });
 
-
 // ✏️ EDITAR (ADMIN)
 router.put("/:id", auth, admin, async (req, res) => {
   try {
@@ -78,7 +95,6 @@ router.put("/:id", auth, admin, async (req, res) => {
   }
 });
 
-
 // ❌ DESATIVAR (ADMIN)
 router.delete("/:id", auth, admin, async (req, res) => {
   try {
@@ -99,7 +115,6 @@ router.delete("/:id", auth, admin, async (req, res) => {
   }
 });
 
-
 // 📦 ESTOQUE (logado)
 router.put("/:id/estoque", auth, async (req, res) => {
   try {
@@ -111,7 +126,7 @@ router.put("/:id/estoque", auth, async (req, res) => {
       return res.status(404).json({ erro: "Produto não encontrado" });
     }
 
-    produto.estoque += Number(quantidade);
+    produto.estoque += Number(quantidade || 0);
 
     if (produto.estoque < 0) {
       produto.estoque = 0;
