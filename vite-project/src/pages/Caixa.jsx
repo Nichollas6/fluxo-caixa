@@ -9,21 +9,24 @@ export default function Caixa() {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // 🔥 verificar caixa + resumo
+  // 🔥 função segura para evitar [object Object]
+  function format(valor) {
+    if (valor == null) return 0;
+
+    if (typeof valor === "object") {
+      return valor.valor ?? valor.total ?? valor.soma ?? 0;
+    }
+
+    return Number(valor) || 0;
+  }
+
+  // 🔥 verificar caixa
   async function verificar() {
     try {
       const res = await api.get("/caixa");
 
       if (res.data) {
         setCaixaAberto(true);
-
-        try {
-          const resumo = await api.get("/caixa/resumo");
-          setRelatorio(resumo.data);
-        } catch (err) {
-          console.log("Erro resumo:", err);
-        }
-
       } else {
         setCaixaAberto(false);
         setRelatorio(null);
@@ -37,13 +40,11 @@ export default function Caixa() {
   // 🔄 auto update
   useEffect(() => {
     verificar();
-
     const intervalo = setInterval(verificar, 5000);
-
     return () => clearInterval(intervalo);
   }, []);
 
-  // 🟢 abrir
+  // 🟢 abrir caixa
   async function abrir() {
     try {
       if (!saldo) {
@@ -68,14 +69,14 @@ export default function Caixa() {
     }
   }
 
-  // 🔴 fechar
+  // 🔴 fechar caixa
   async function fechar() {
     try {
       setLoading(true);
 
       const res = await api.post("/caixa/fechar");
 
-      setRelatorio(res.data);
+      setRelatorio(res.data); // 👈 backend já retorna aqui
       setCaixaAberto(false);
 
     } catch (err) {
@@ -137,15 +138,15 @@ export default function Caixa() {
 
           <h2 className="font-bold mb-3">📊 Resumo</h2>
 
-          <p>Entradas: R$ {relatorio.totalVendas}</p>
-          <p>Lucro: R$ {relatorio.lucro}</p>
-          <p>Vendas: {relatorio.quantidade}</p>
+          <p>Entradas: R$ {format(relatorio.totalVendas)}</p>
+          <p>Lucro: R$ {format(relatorio.lucro)}</p>
+          <p>Vendas: {format(relatorio.quantidade)}</p>
 
-          {relatorio.saldoAtual && (
+          {relatorio.caixa?.saldoFinal !== undefined && (
             <>
               <hr className="my-2" />
               <p className="font-bold">
-                Saldo atual: R$ {relatorio.saldoAtual}
+                Saldo final: R$ {format(relatorio.caixa.saldoFinal)}
               </p>
             </>
           )}

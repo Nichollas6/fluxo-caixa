@@ -57,24 +57,32 @@ router.post("/fechar", async (req, res) => {
       return res.status(400).json("Nenhum caixa aberto");
     }
 
-    // 🔥 intervalo do caixa (corrigido)
+    // 🔥 intervalo do caixa
     const inicio = new Date(caixa.dataAbertura);
     const fim = new Date();
 
-    // 📊 vendas do período do caixa
+    // 📊 vendas do período
     const vendas = await Venda.find({
       data: { $gte: inicio, $lte: fim }
     });
 
-    // 💰 cálculos seguros
-    const totalVendas = vendas.reduce((acc, v) => acc + Number(v.valor || 0), 0);
-    const lucro = vendas.reduce((acc, v) => acc + Number(v.lucro || 0), 0);
+    // 💰 cálculos seguros (COM ??)
+    const totalVendas = vendas.reduce(
+      (acc, v) => acc + Number(v.valor ?? 0),
+      0
+    );
 
-    // 🧾 atualizar caixa
-    caixa.status = "fechado";
+    const lucro = vendas.reduce(
+      (acc, v) => acc + Number(v.lucro ?? 0),
+      0
+    );
+
+    // 🧾 atualização do caixa
     caixa.totalVendas = totalVendas;
     caixa.lucro = lucro;
-    caixa.saldoFinal = Number(caixa.saldoInicial) + totalVendas;
+    caixa.saldoFinal = Number(caixa.saldoInicial ?? 0) + totalVendas;
+
+    caixa.status = "fechado";
     caixa.dataFechamento = fim;
 
     await caixa.save();
@@ -93,7 +101,7 @@ router.post("/fechar", async (req, res) => {
 });
 
 
-// 📜 HISTÓRICO DE CAIXAS (🔥 PROFISSIONAL)
+// 📜 HISTÓRICO DE CAIXAS
 router.get("/historico", async (req, res) => {
   try {
     const lista = await Caixa.find().sort({ dataAbertura: -1 });
@@ -103,6 +111,5 @@ router.get("/historico", async (req, res) => {
     res.status(500).json("Erro ao buscar histórico");
   }
 });
-
 
 module.exports = router;
