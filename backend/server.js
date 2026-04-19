@@ -23,6 +23,7 @@ app.use("/contas", require("./routes/contaRoutes"));
 app.use("/usuarios", require("./routes/usuarioRoutes"));
 app.use("/login", require("./routes/loginRoutes"));
 app.use("/dashboard", require("./routes/dashboardRoutes"));
+app.use("/lojas", require("./routes/lojaRoutes"));
 
 const PORT = process.env.PORT || 3000;
 
