@@ -6,7 +6,8 @@ const UsuarioSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    lowercase: true
+    lowercase: true,
+    trim: true
   },
 
   senha: {
@@ -21,24 +22,23 @@ const UsuarioSchema = new mongoose.Schema({
     default: "vendedor"
   },
 
-  lojaId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Loja",
-    required: true
-  },
-
   ativo: {
     type: Boolean,
     default: true
   }
 });
 
-// hash senha
+// 🔥 LIMPEZA + HASH
 UsuarioSchema.pre("save", async function () {
+  this.email = this.email.trim().toLowerCase();
+  this.senha = this.senha.trim();
+
   if (!this.isModified("senha")) return;
+
   this.senha = await bcrypt.hash(this.senha, 10);
 });
 
+// comparação
 UsuarioSchema.methods.compararSenha = function (senha) {
   return bcrypt.compare(senha, this.senha);
 };
