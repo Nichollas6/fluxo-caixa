@@ -9,17 +9,6 @@ export default function Caixa() {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // 🔥 função segura para evitar [object Object]
-  function format(valor) {
-    if (valor == null) return 0;
-
-    if (typeof valor === "object") {
-      return valor.valor ?? valor.total ?? valor.soma ?? 0;
-    }
-
-    return Number(valor) || 0;
-  }
-
   // 🔥 verificar caixa
   async function verificar() {
     try {
@@ -31,13 +20,11 @@ export default function Caixa() {
         setCaixaAberto(false);
         setRelatorio(null);
       }
-
     } catch (err) {
       console.log("Erro caixa:", err);
     }
   }
 
-  // 🔄 auto update
   useEffect(() => {
     verificar();
     const intervalo = setInterval(verificar, 5000);
@@ -76,7 +63,7 @@ export default function Caixa() {
 
       const res = await api.post("/caixa/fechar");
 
-      setRelatorio(res.data); // 👈 backend já retorna aqui
+      setRelatorio(res.data);
       setCaixaAberto(false);
 
     } catch (err) {
@@ -129,7 +116,6 @@ export default function Caixa() {
             {loading ? "Fechando..." : "Fechar Caixa"}
           </button>
         )}
-
       </div>
 
       {/* 📊 RELATÓRIO */}
@@ -138,18 +124,15 @@ export default function Caixa() {
 
           <h2 className="font-bold mb-3">📊 Resumo</h2>
 
-          <p>Entradas: R$ {format(relatorio.totalVendas)}</p>
-          <p>Lucro: R$ {format(relatorio.lucro)}</p>
-          <p>Vendas: {format(relatorio.quantidade)}</p>
+          <p>Entradas: R$ {relatorio?.totalVendas || 0}</p>
+          <p>Lucro: R$ {relatorio?.lucro || 0}</p>
+          <p>Vendas: {relatorio?.quantidade || 0}</p>
 
-          {relatorio.caixa?.saldoFinal !== undefined && (
-            <>
-              <hr className="my-2" />
-              <p className="font-bold">
-                Saldo final: R$ {format(relatorio.caixa.saldoFinal)}
-              </p>
-            </>
-          )}
+          <hr className="my-2" />
+
+          <p className="font-bold">
+            Saldo final: R$ {relatorio?.caixa?.saldoFinal || 0}
+          </p>
 
         </div>
       )}
