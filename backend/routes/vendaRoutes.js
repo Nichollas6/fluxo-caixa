@@ -6,25 +6,36 @@ const Caixa = require("../models/Caixa");
 
 router.post("/", async (req, res) => {
   try {
-    const { produtoId, cliente, qtd, vendedor } = req.body;
+    let { produtoId, cliente, qtd, vendedor } = req.body;
+
+    // 🔥 validações
+    if (!produtoId || !qtd) {
+      return res.status(400).json({ erro: "Dados incompletos" });
+    }
+
+    qtd = Number(qtd);
+
+    if (qtd <= 0) {
+      return res.status(400).json({ erro: "Quantidade inválida" });
+    }
 
     // 🔐 BLOQUEAR VENDA SEM CAIXA
     const caixa = await Caixa.findOne({ status: "aberto" });
 
     if (!caixa) {
-      return res.status(400).json("Abra o caixa primeiro");
+      return res.status(400).json({ erro: "Abra o caixa primeiro" });
     }
 
     // 🔎 BUSCAR PRODUTO
     const produto = await Produto.findById(produtoId);
 
     if (!produto) {
-      return res.status(404).json("Produto não encontrado");
+      return res.status(404).json({ erro: "Produto não encontrado" });
     }
 
     // 📦 VALIDAR ESTOQUE
     if (produto.estoque < qtd) {
-      return res.status(400).json("Estoque insuficiente");
+      return res.status(400).json({ erro: "Estoque insuficiente" });
     }
 
     // 📉 BAIXAR ESTOQUE
@@ -32,25 +43,35 @@ router.post("/", async (req, res) => {
     await produto.save();
 
     // 💰 CALCULAR
-    const total = produto.preco * qtd;
-    const lucro = total - (produto.custo * qtd);
+    const total = Number(produto.preco) * qtd;
+    const lucro = total - (Number(produto.custo) * qtd);
 
     // 🛒 CRIAR VENDA
     const venda = await Venda.create({
       produto: produto.nome,
       cliente: cliente || "Balcão",
-      vendedor,
+      vendedor: vendedor || "Sistema",
       quantidade: qtd,
       valor: total,
       lucro,
       data: new Date()
     });
 
-    res.json(venda);
+    // 🔥 ATUALIZAR CAIXA (NÍVEL PROFISSIONAL)
+    caixa.totalVendas = (caixa.totalVendas || 0) + total;
+    caixa.lucro = (caixa.lucro || 0) + lucro;
+
+    await caixa.save();
+
+    // 📤 retorno completo (pra recibo)
+    res.json({
+      sucesso: true,
+      venda
+    });
 
   } catch (err) {
     console.log("ERRO VENDA:", err);
-    res.status(500).json("Erro ao realizar venda");
+    res.status(500).json({ erro: "Erro ao realizar venda" });
   }
 });
 

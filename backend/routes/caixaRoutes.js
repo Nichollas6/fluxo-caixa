@@ -3,60 +3,106 @@ const router = express.Router();
 const Caixa = require("../models/Caixa");
 const Venda = require("../models/Venda");
 
-// 🔍 CAIXA ABERTO
+
+// 🔍 BUSCAR CAIXA ABERTO
 router.get("/", async (req, res) => {
-  const caixa = await Caixa.findOne({ status: "aberto" });
-  res.json(caixa);
+  try {
+    const caixa = await Caixa.findOne({ status: "aberto" });
+    res.json(caixa);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Erro ao buscar caixa");
+  }
 });
 
-// 🟢 ABRIR
+
+// 🟢 ABRIR CAIXA
 router.post("/abrir", async (req, res) => {
-  const existente = await Caixa.findOne({ status: "aberto" });
+  try {
+    const { usuario, valor } = req.body;
 
-  if (existente) {
-    return res.status(400).json("Já existe caixa aberto");
+    if (!valor) {
+      return res.status(400).json("Informe o saldo inicial");
+    }
+
+    const existente = await Caixa.findOne({ status: "aberto" });
+
+    if (existente) {
+      return res.status(400).json("Já existe caixa aberto");
+    }
+
+    const caixa = await Caixa.create({
+      abertoPor: usuario,
+      saldoInicial: Number(valor),
+      saldoFinal: 0,
+      status: "aberto",
+      dataAbertura: new Date()
+    });
+
+    res.json(caixa);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Erro ao abrir caixa");
   }
-
-  const caixa = await Caixa.create({
-    abertoPor: req.body.usuario,
-    saldoInicial: req.body.valor,
-    status: "aberto",
-    dataAbertura: new Date()
-  });
-
-  res.json(caixa);
 });
 
-// 🔴 FECHAR + RELATÓRIO
+
+// 🔴 FECHAR CAIXA + RELATÓRIO
 router.post("/fechar", async (req, res) => {
-  const caixa = await Caixa.findOne({ status: "aberto" });
+  try {
+    const caixa = await Caixa.findOne({ status: "aberto" });
 
-  if (!caixa) {
-    return res.status(400).json("Nenhum caixa aberto");
+    if (!caixa) {
+      return res.status(400).json("Nenhum caixa aberto");
+    }
+
+    // 🔥 intervalo do caixa (corrigido)
+    const inicio = new Date(caixa.dataAbertura);
+    const fim = new Date();
+
+    // 📊 vendas do período do caixa
+    const vendas = await Venda.find({
+      data: { $gte: inicio, $lte: fim }
+    });
+
+    // 💰 cálculos seguros
+    const totalVendas = vendas.reduce((acc, v) => acc + Number(v.valor || 0), 0);
+    const lucro = vendas.reduce((acc, v) => acc + Number(v.lucro || 0), 0);
+
+    // 🧾 atualizar caixa
+    caixa.status = "fechado";
+    caixa.totalVendas = totalVendas;
+    caixa.lucro = lucro;
+    caixa.saldoFinal = Number(caixa.saldoInicial) + totalVendas;
+    caixa.dataFechamento = fim;
+
+    await caixa.save();
+
+    res.json({
+      caixa,
+      totalVendas,
+      lucro,
+      quantidade: vendas.length
+    });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Erro ao fechar caixa");
   }
-
-  // 📊 vendas do dia
-  const inicio = new Date(caixa.dataAbertura);
-
-  const vendas = await Venda.find({
-    data: { $gte: inicio }
-  });
-
-  const totalVendas = vendas.reduce((acc, v) => acc + v.valor, 0);
-  const lucro = vendas.reduce((acc, v) => acc + v.lucro, 0);
-
-  caixa.status = "fechado";
-  caixa.saldoFinal = caixa.saldoInicial + totalVendas;
-  caixa.dataFechamento = new Date();
-
-  await caixa.save();
-
-  res.json({
-    caixa,
-    totalVendas,
-    lucro,
-    quantidade: vendas.length
-  });
 });
+
+
+// 📜 HISTÓRICO DE CAIXAS (🔥 PROFISSIONAL)
+router.get("/historico", async (req, res) => {
+  try {
+    const lista = await Caixa.find().sort({ dataAbertura: -1 });
+    res.json(lista);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Erro ao buscar histórico");
+  }
+});
+
 
 module.exports = router;

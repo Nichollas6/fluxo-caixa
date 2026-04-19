@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const Usuario = require("../models/Usuario");
+const jwt = require("jsonwebtoken");
+
+const SECRET = "segredo_super_forte";
 
 // 🔐 LOGIN
 router.post("/", async (req, res) => {
@@ -11,28 +14,44 @@ router.post("/", async (req, res) => {
     email = email?.trim().toLowerCase();
     senha = senha?.trim();
 
-    // 🚨 validação básica
     if (!email || !senha) {
       return res.status(400).json({ erro: "Preencha todos os campos" });
     }
 
-    // 🔎 busca usuário pelo email
-    const user = await Usuario.findOne({ email });
+    // 🔎 buscar usuário + senha
+    const user = await Usuario.findOne({ email }).select("+senha");
 
     if (!user) {
       return res.status(401).json({ erro: "Usuário não encontrado" });
     }
 
-    // 🔐 valida senha
-    if (user.senha !== senha) {
+    // 🚫 usuário desativado
+    if (!user.ativo) {
+      return res.status(403).json({ erro: "Usuário desativado" });
+    }
+
+    // 🔐 validar senha (usando método do model)
+    const senhaValida = await user.compararSenha(senha);
+
+    if (!senhaValida) {
       return res.status(401).json({ erro: "Senha incorreta" });
     }
 
-    // ✅ sucesso
+    // 🔥 gerar token
+    const token = jwt.sign(
+      { id: user._id, tipo: user.tipo },
+      SECRET,
+      { expiresIn: "8h" }
+    );
+
+    // ✅ resposta limpa
     res.json({
-      _id: user._id,
-      email: user.email,
-      tipo: user.tipo
+      token,
+      user: {
+        _id: user._id,
+        email: user.email,
+        tipo: user.tipo
+      }
     });
 
   } catch (err) {

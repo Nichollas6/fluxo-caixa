@@ -1,33 +1,49 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 export default function Caixa() {
   const [saldo, setSaldo] = useState("");
-  const [relatorio, setRelatorio] = useState(null);
   const [caixaAberto, setCaixaAberto] = useState(false);
-
-  // 🔥 BACKEND ONLINE
-  const API = "https://fluxo-caixa-back.onrender.com";
+  const [relatorio, setRelatorio] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // 🔍 verificar caixa ao carregar
-  useEffect(() => {
-    async function verificar() {
-      try {
-        const res = await axios.get(`${API}/caixa`);
-        if (res.data) {
-          setCaixaAberto(true);
-        }
-      } catch (err) {
-        console.log("Erro ao verificar caixa:", err);
-      }
-    }
+  // 🔥 verificar caixa + resumo
+  async function verificar() {
+    try {
+      const res = await api.get("/caixa");
 
+      if (res.data) {
+        setCaixaAberto(true);
+
+        try {
+          const resumo = await api.get("/caixa/resumo");
+          setRelatorio(resumo.data);
+        } catch (err) {
+          console.log("Erro resumo:", err);
+        }
+
+      } else {
+        setCaixaAberto(false);
+        setRelatorio(null);
+      }
+
+    } catch (err) {
+      console.log("Erro caixa:", err);
+    }
+  }
+
+  // 🔄 auto update
+  useEffect(() => {
     verificar();
+
+    const intervalo = setInterval(verificar, 5000);
+
+    return () => clearInterval(intervalo);
   }, []);
 
-  // 🟢 abrir caixa
+  // 🟢 abrir
   async function abrir() {
     try {
       if (!saldo) {
@@ -35,33 +51,37 @@ export default function Caixa() {
         return;
       }
 
-      await axios.post(`${API}/caixa/abrir`, {
+      setLoading(true);
+
+      await api.post("/caixa/abrir", {
         usuario: user?.email,
         valor: Number(saldo)
       });
 
-      alert("Caixa aberto 🔥");
-      setCaixaAberto(true);
+      setSaldo("");
+      await verificar();
 
     } catch (err) {
-      console.log("Erro abrir caixa:", err.response?.data);
-      alert("Erro ao abrir caixa");
+      alert(err.response?.data || "Erro ao abrir caixa");
+    } finally {
+      setLoading(false);
     }
   }
 
-  // 🔴 fechar caixa
+  // 🔴 fechar
   async function fechar() {
     try {
-      const res = await axios.post(`${API}/caixa/fechar`);
+      setLoading(true);
+
+      const res = await api.post("/caixa/fechar");
 
       setRelatorio(res.data);
       setCaixaAberto(false);
 
-      alert("Caixa fechado 🔥");
-
     } catch (err) {
-      console.log("Erro fechar caixa:", err.response?.data);
-      alert("Erro ao fechar caixa");
+      alert(err.response?.data || "Erro ao fechar caixa");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -70,44 +90,42 @@ export default function Caixa() {
 
       <h1 className="text-2xl font-bold mb-6">🧾 Caixa</h1>
 
-      <div className="bg-white p-6 rounded-2xl shadow max-w-md">
+      <div className="bg-white p-6 rounded shadow max-w-md">
 
-        {/* STATUS */}
-        <p className="mb-4">
+        <p>
           Status:{" "}
           <span className={caixaAberto ? "text-green-600" : "text-red-600"}>
             {caixaAberto ? "Aberto" : "Fechado"}
           </span>
         </p>
 
-        {/* USUÁRIO */}
-        <p className="mb-4 text-sm text-gray-500">
+        <p className="text-sm text-gray-500 mb-3">
           👤 {user?.email}
         </p>
 
-        {/* INPUT */}
         <input
           type="number"
           placeholder="Saldo inicial"
           value={saldo}
           onChange={(e) => setSaldo(e.target.value)}
-          className="border p-3 rounded w-full mb-4"
+          className="border p-2 w-full mb-3"
         />
 
-        {/* BOTÕES */}
         {!caixaAberto ? (
           <button
             onClick={abrir}
-            className="w-full bg-green-500 text-white p-3 rounded hover:bg-green-600"
+            disabled={loading}
+            className="bg-green-500 text-white w-full p-2"
           >
-            Abrir Caixa
+            {loading ? "Abrindo..." : "Abrir Caixa"}
           </button>
         ) : (
           <button
             onClick={fechar}
-            className="w-full bg-red-500 text-white p-3 rounded hover:bg-red-600"
+            disabled={loading}
+            className="bg-red-500 text-white w-full p-2"
           >
-            Fechar Caixa
+            {loading ? "Fechando..." : "Fechar Caixa"}
           </button>
         )}
 
@@ -115,19 +133,22 @@ export default function Caixa() {
 
       {/* 📊 RELATÓRIO */}
       {relatorio && (
-        <div className="bg-white p-6 rounded-2xl shadow mt-6 max-w-md">
+        <div className="bg-white p-6 mt-6 rounded shadow max-w-md">
 
-          <h2 className="font-bold mb-4">📊 Relatório do Caixa</h2>
+          <h2 className="font-bold mb-3">📊 Resumo</h2>
 
-          <p>Total vendas: R$ {relatorio.totalVendas}</p>
+          <p>Entradas: R$ {relatorio.totalVendas}</p>
           <p>Lucro: R$ {relatorio.lucro}</p>
-          <p>Quantidade de vendas: {relatorio.quantidade}</p>
+          <p>Vendas: {relatorio.quantidade}</p>
 
-          <hr className="my-3" />
-
-          <p className="font-bold">
-            Saldo final: R$ {relatorio.caixa?.saldoFinal}
-          </p>
+          {relatorio.saldoAtual && (
+            <>
+              <hr className="my-2" />
+              <p className="font-bold">
+                Saldo atual: R$ {relatorio.saldoAtual}
+              </p>
+            </>
+          )}
 
         </div>
       )}

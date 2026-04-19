@@ -11,45 +11,41 @@ export default function Clientes() {
 
   const [historico, setHistorico] = useState([]);
 
-  // 🔥 BACKEND ONLINE
   const API = "https://fluxo-caixa-back.onrender.com";
 
   useEffect(() => {
     carregar();
   }, []);
 
+  // 🔄 CARREGAR CLIENTES
   async function carregar() {
     try {
       const res = await axios.get(`${API}/clientes`);
-      setClientes(res.data);
+      setClientes(res.data || []);
     } catch (err) {
       console.log("Erro ao carregar clientes:", err);
+      alert("Erro ao carregar clientes");
     }
   }
 
+  // 💾 SALVAR
   async function salvar() {
-    console.log("CLICOU SALVAR CLIENTE 🔥");
-
     try {
       if (!nome.trim()) {
         alert("Digite o nome do cliente");
         return;
       }
 
+      const payload = {
+        nome: nome.trim(),
+        telefone: telefone.trim()
+      };
+
       if (editando) {
-        await axios.put(`${API}/clientes/${editando}`, {
-          nome: nome.trim(),
-          telefone: telefone.trim()
-        });
-
+        await axios.put(`${API}/clientes/${editando}`, payload);
         alert("Cliente atualizado 🔥");
-
       } else {
-        await axios.post(`${API}/clientes`, {
-          nome: nome.trim(),
-          telefone: telefone.trim()
-        });
-
+        await axios.post(`${API}/clientes`, payload);
         alert("Cliente criado 🔥");
       }
 
@@ -62,43 +58,55 @@ export default function Clientes() {
     }
   }
 
+  // 🗑 EXCLUIR
   async function excluir(id) {
-    if (!confirm("Excluir cliente?")) return;
+    if (!window.confirm("Excluir cliente?")) return;
 
     try {
       await axios.delete(`${API}/clientes/${id}`);
       carregar();
     } catch (err) {
       console.log("Erro ao excluir:", err);
+      alert("Erro ao excluir cliente");
     }
   }
 
+  // ✏️ EDITAR
   function editar(c) {
     setEditando(c._id);
-    setNome(c.nome);
-    setTelefone(c.telefone);
+    setNome(c.nome || "");
+    setTelefone(c.telefone || "");
   }
 
+  // 🔄 LIMPAR
   function limpar() {
     setEditando(null);
     setNome("");
     setTelefone("");
   }
 
-  // 📋 histórico
+  // 📋 HISTÓRICO
   async function verHistorico(nomeCliente) {
     try {
       const res = await axios.get(`${API}/venda`);
-      const lista = res.data.filter(v => v.cliente === nomeCliente);
+
+      const lista = (res.data || []).filter(
+        v => v.cliente === nomeCliente
+      );
+
       setHistorico(lista);
+
     } catch (err) {
       console.log("Erro histórico:", err);
+      alert("Erro ao carregar histórico");
     }
   }
 
-  // 🔎 busca
+  // 🔎 BUSCA SEGURA
   const lista = clientes.filter(c =>
-    c.nome.toLowerCase().includes(busca.toLowerCase())
+    (c.nome || "")
+      .toLowerCase()
+      .includes(busca.toLowerCase().trim())
   );
 
   return (
@@ -109,6 +117,7 @@ export default function Clientes() {
       {/* BUSCA */}
       <input
         placeholder="Buscar cliente..."
+        value={busca}
         onChange={(e) => setBusca(e.target.value)}
         className="border p-3 rounded mb-4 w-full"
       />
@@ -139,12 +148,18 @@ export default function Clientes() {
         </div>
 
         <div className="flex gap-2 mt-4">
-          <button onClick={salvar} className="bg-blue-500 text-white p-2 rounded">
+          <button
+            onClick={salvar}
+            className="bg-blue-500 text-white p-2 rounded"
+          >
             💾 Salvar
           </button>
 
           {editando && (
-            <button onClick={limpar} className="bg-gray-400 text-white p-2 rounded">
+            <button
+              onClick={limpar}
+              className="bg-gray-400 text-white p-2 rounded"
+            >
               Cancelar
             </button>
           )}
@@ -155,11 +170,15 @@ export default function Clientes() {
       {/* LISTA */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 
+        {lista.length === 0 && (
+          <p className="text-gray-500">Nenhum cliente encontrado</p>
+        )}
+
         {lista.map(c => (
           <div key={c._id} className="bg-white p-4 rounded shadow">
 
             <h2 className="font-bold">{c.nome}</h2>
-            <p>📞 {c.telefone}</p>
+            <p>📞 {c.telefone || "Não informado"}</p>
 
             <div className="flex gap-2 mt-3">
 

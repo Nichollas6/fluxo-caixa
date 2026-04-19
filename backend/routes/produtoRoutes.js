@@ -1,74 +1,129 @@
 const express = require("express");
 const router = express.Router();
 const Produto = require("../models/Produto");
+const auth = require("../middleware/auth");
+const admin = require("../middleware/admin");
 
-// 📦 LISTAR PRODUTOS
-router.get("/", async (req, res) => {
-  try {
-    const dados = await Produto.find();
-    res.json(dados);
-  } catch (err) {
-    console.log(err);
-    res.status(500).json("Erro ao buscar produtos");
-  }
+// 📦 LISTAR PRODUTOS (logado)
+router.get("/", auth, async (req, res) => {
+  const produtos = await Produto.find({ ativo: { $ne: false } });
+  res.json(produtos);
 });
 
-// ➕ CRIAR PRODUTO
-router.post("/", async (req, res) => {
-  try {
-    const { nome, preco, custo, estoque } = req.body;
 
-    if (!nome || !preco || !estoque) {
-      return res.status(400).json("Campos obrigatórios");
+// ➕ CRIAR PRODUTO (ADMIN)
+router.post("/", auth, admin, async (req, res) => {
+  try {
+    let { nome, preco, custo, estoque, categoria } = req.body;
+
+    nome = nome?.trim();
+
+    if (!nome || preco == null || custo == null) {
+      return res.status(400).json({ erro: "Nome, preço e custo são obrigatórios" });
     }
 
-    const novo = await Produto.create({
+    if (preco < 0 || custo < 0 || estoque < 0) {
+      return res.status(400).json({ erro: "Valores inválidos" });
+    }
+
+    const existe = await Produto.findOne({ nome });
+
+    if (existe) {
+      return res.status(400).json({ erro: "Produto já existe" });
+    }
+
+    const produto = await Produto.create({
       nome,
-      preco,
-      custo,
-      estoque
+      preco: Number(preco),
+      custo: Number(custo),
+      estoque: Number(estoque) || 0,
+      categoria,
+      ativo: true
     });
 
-    res.json(novo);
+    res.json(produto);
+
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ao criar produto");
+    res.status(500).json({ erro: "Erro ao criar produto" });
   }
 });
 
-// ✏️ EDITAR PRODUTO
-router.put("/:id", async (req, res) => {
+
+// ✏️ EDITAR (ADMIN)
+router.put("/:id", auth, admin, async (req, res) => {
   try {
-    const produto = await Produto.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const produto = await Produto.findById(req.params.id);
 
     if (!produto) {
-      return res.status(404).json("Produto não encontrado");
+      return res.status(404).json({ erro: "Produto não encontrado" });
     }
+
+    const { nome, preco, custo, estoque, categoria, ativo } = req.body;
+
+    if (nome !== undefined) produto.nome = nome.trim();
+    if (preco !== undefined) produto.preco = Number(preco);
+    if (custo !== undefined) produto.custo = Number(custo);
+    if (estoque !== undefined) produto.estoque = Number(estoque);
+    if (categoria !== undefined) produto.categoria = categoria;
+    if (ativo !== undefined) produto.ativo = ativo;
+
+    await produto.save();
 
     res.json(produto);
+
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ao atualizar produto");
+    res.status(500).json({ erro: "Erro ao atualizar produto" });
   }
 });
 
-// 🗑 EXCLUIR PRODUTO
-router.delete("/:id", async (req, res) => {
+
+// ❌ DESATIVAR (ADMIN)
+router.delete("/:id", auth, admin, async (req, res) => {
   try {
-    const produto = await Produto.findByIdAndDelete(req.params.id);
+    const produto = await Produto.findById(req.params.id);
 
     if (!produto) {
-      return res.status(404).json("Produto não encontrado");
+      return res.status(404).json({ erro: "Produto não encontrado" });
     }
 
-    res.json("Produto excluído");
+    produto.ativo = false;
+    await produto.save();
+
+    res.json({ mensagem: "Produto desativado" });
+
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ao excluir produto");
+    res.status(500).json({ erro: "Erro ao desativar produto" });
+  }
+});
+
+
+// 📦 ESTOQUE (logado)
+router.put("/:id/estoque", auth, async (req, res) => {
+  try {
+    const { quantidade } = req.body;
+
+    const produto = await Produto.findById(req.params.id);
+
+    if (!produto) {
+      return res.status(404).json({ erro: "Produto não encontrado" });
+    }
+
+    produto.estoque += Number(quantidade);
+
+    if (produto.estoque < 0) {
+      produto.estoque = 0;
+    }
+
+    await produto.save();
+
+    res.json(produto);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ erro: "Erro ao atualizar estoque" });
   }
 });
 

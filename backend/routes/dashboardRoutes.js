@@ -1,34 +1,46 @@
 const express = require("express");
 const router = express.Router();
 
-const Venda = require("../models/Venda"); // 👈 IMPORTA AQUI
+const Venda = require("../models/Venda");
 
 router.get("/", async (req, res) => {
   try {
     const { mes } = req.query;
 
     let filtro = {};
-    if (mes) filtro.mes = Number(mes);
+
+    if (mes) {
+      const ano = new Date().getFullYear();
+
+      const inicio = new Date(ano, mes - 1, 1);
+      const fim = new Date(ano, mes, 0, 23, 59, 59);
+
+      filtro.data = { $gte: inicio, $lte: fim };
+    }
 
     const vendas = await Venda.find(filtro);
 
     const resumo = {};
 
     vendas.forEach((v) => {
-      if (!resumo[v.dia]) {
-        resumo[v.dia] = {
-          dia: v.dia,
+      const dia = new Date(v.data).getDate();
+
+      if (!resumo[dia]) {
+        resumo[dia] = {
+          dia,
           entrada: 0,
-          saida: 0,
+          lucro: 0
         };
       }
 
-      resumo[v.dia].entrada += v.entrada || 0;
-      resumo[v.dia].saida += v.saida || 0;
+      resumo[dia].entrada += Number(v.valor || 0);
+      resumo[dia].lucro += Number(v.lucro || 0);
     });
 
     res.json(Object.values(resumo));
+
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: "Erro ao carregar dashboard" });
   }
 });
