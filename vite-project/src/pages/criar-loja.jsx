@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 export default function CriarLoja() {
@@ -10,6 +11,7 @@ export default function CriarLoja() {
   });
 
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   function handleChange(e) {
     setForm({
@@ -24,18 +26,19 @@ export default function CriarLoja() {
     try {
       setLoading(true);
 
-      const res = await api.post("/criar", form);
+      // 🔥 ROTA CORRETA
+      const res = await api.post("/loja/criar", form);
 
       alert("Loja criada com sucesso!");
+
       console.log(res.data);
 
-      // limpa formulário
-      setForm({
-        nome: "",
-        documento: "",
-        email: "",
-        senha: ""
-      });
+      // 👉 se quiser auto login depois (futuro)
+      // localStorage.setItem("token", res.data.token);
+      // localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      // 🔁 redireciona pro login
+      navigate("/login");
 
     } catch (err) {
       const mensagem =
@@ -105,6 +108,18 @@ export default function CriarLoja() {
         >
           {loading ? "Criando..." : "Criar Loja"}
         </button>
+
+        {/* 🔥 VOLTAR PRO LOGIN */}
+        <p className="text-sm text-center mt-4">
+          Já tem conta?{" "}
+          <span
+            onClick={() => navigate("/login")}
+            className="text-blue-600 cursor-pointer"
+          >
+            Entrar
+          </span>
+        </p>
+
       </form>
 
     </div>
