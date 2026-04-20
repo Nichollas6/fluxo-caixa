@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 
 import Login from "./pages/Login";
+import CriarLoja from "./pages/CriarLoja"; // ✅ IMPORTADO
 import Dashboard from "./pages/Dashboard";
 import Produtos from "./pages/Produtos";
 import Clientes from "./pages/Clientes";
@@ -68,10 +69,11 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* LOGIN */}
+        {/* 🔓 ROTAS PÚBLICAS */}
         <Route path="/login" element={<Login />} />
+        <Route path="/criar-loja" element={<CriarLoja />} />
 
-        {/* SISTEMA */}
+        {/* 🔐 SISTEMA */}
         <Route path="/*" element={
           <PrivateRoute>
             <Layout />

@@ -55,10 +55,21 @@ export default function Login() {
 
         <button
           onClick={entrar}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition mb-3"
         >
           Entrar
         </button>
+
+        {/* 🔥 BOTÃO CRIAR CONTA */}
+        <p className="text-sm text-center mt-2">
+          Não tem conta?{" "}
+          <span
+            onClick={() => navigate("/criar-loja")}
+            className="text-blue-600 cursor-pointer"
+          >
+            Criar agora
+          </span>
+        </p>
 
       </div>
     </div>

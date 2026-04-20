@@ -1,21 +1,37 @@
 const jwt = require("jsonwebtoken");
 
-const SECRET = "segredo_super_forte";
+const SECRET = process.env.JWT_SECRET || "dev_secret";
 
 module.exports = (req, res, next) => {
-  const auth = req.headers.authorization;
-
-  if (!auth) {
-    return res.status(401).json("Token não enviado");
-  }
-
-  const token = auth.split(" ")[1];
-
   try {
+    const auth = req.headers.authorization;
+
+    // 🔒 valida header
+    if (!auth) {
+      return res.status(401).json({ mensagem: "Token não enviado" });
+    }
+
+    const parts = auth.split(" ");
+
+    // 🔒 valida formato Bearer
+    if (parts.length !== 2) {
+      return res.status(401).json({ mensagem: "Token mal formatado" });
+    }
+
+    const [scheme, token] = parts;
+
+    if (!/^Bearer$/i.test(scheme)) {
+      return res.status(401).json({ mensagem: "Formato inválido" });
+    }
+
+    // 🔐 valida token
     const decoded = jwt.verify(token, SECRET);
+
     req.user = decoded;
-    next();
-  } catch {
-    return res.status(401).json("Token inválido");
+
+    return next();
+
+  } catch (err) {
+    return res.status(401).json({ mensagem: "Token inválido ou expirado" });
   }
 };

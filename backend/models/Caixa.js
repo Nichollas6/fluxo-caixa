@@ -11,8 +11,7 @@ const CaixaSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["aberto", "fechado"],
-      default: "aberto",
-      index: true
+      default: "aberto"
     },
 
     saldoInicial: {
@@ -61,7 +60,7 @@ const CaixaSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: true // 🔥 createdAt e updatedAt automático
+    timestamps: true
   }
 );
 
