@@ -23,24 +23,31 @@ export default function CriarLoja() {
   async function handleSubmit(e) {
     e.preventDefault();
 
+    console.log("🔥 BOTÃO CLICADO", form);
+
+    // 🔥 validação simples
+    if (!form.nome || !form.documento || !form.email || !form.senha) {
+      alert("Preencha todos os campos");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // 🔥 ROTA CORRETA
+      console.log("🚀 enviando pro backend...");
+
       const res = await api.post("/loja/criar", form);
+
+      console.log("✅ RESPOSTA:", res.data);
 
       alert("Loja criada com sucesso!");
 
-      console.log(res.data);
-
-      // 👉 se quiser auto login depois (futuro)
-      // localStorage.setItem("token", res.data.token);
-      // localStorage.setItem("user", JSON.stringify(res.data.user));
-
-      // 🔁 redireciona pro login
       navigate("/login");
 
     } catch (err) {
+      console.log("❌ ERRO COMPLETO:", err);
+      console.log("❌ RESPONSE:", err.response);
+
       const mensagem =
         err.response?.data?.mensagem ||
         err.response?.data ||
@@ -109,7 +116,6 @@ export default function CriarLoja() {
           {loading ? "Criando..." : "Criar Loja"}
         </button>
 
-        {/* 🔥 VOLTAR PRO LOGIN */}
         <p className="text-sm text-center mt-4">
           Já tem conta?{" "}
           <span
