@@ -67,11 +67,16 @@ export default function Caixa() {
       setCaixaAberto(false);
 
     } catch (err) {
-      alert(err.response?.data || "Erro ao fechar caixa");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const mensagem =
+    err.response?.data?.mensagem ||
+    err.response?.data ||
+    err.message ||
+    "Erro ao fechar caixa";
+
+  alert(typeof mensagem === "string" ? mensagem : JSON.stringify(mensagem));
+} finally {
+  setLoading(false);
+}}
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
