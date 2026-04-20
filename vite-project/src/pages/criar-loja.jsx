@@ -42,7 +42,10 @@ export default function CriarLoja() {
 
       alert("Loja criada com sucesso!");
 
-      navigate("/login");
+      localStorage.setItem("token", res.data.token);
+localStorage.setItem("user", JSON.stringify(res.data.user));
+
+navigate("/");
 
     } catch (err) {
       console.log("❌ ERRO COMPLETO:", err);

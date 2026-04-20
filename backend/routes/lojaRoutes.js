@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 
 const Loja = require("../models/Loja");
@@ -8,18 +7,12 @@ const Usuario = require("../models/Usuario");
 
 const SECRET = process.env.JWT_SECRET || "dev_secret";
 
-// 🏪 CRIAR LOJA + ADMIN + AUTO LOGIN
 router.post("/criar", async (req, res) => {
-  const session = await mongoose.startSession();
-
   try {
-    session.startTransaction();
-
     let { nome, documento, email, senha } = req.body;
 
     // 🔥 validação
     if (!nome || !documento || !email || !senha) {
-      await session.abortTransaction();
       return res.status(400).json({ mensagem: "Preencha todos os campos" });
     }
 
@@ -27,41 +20,29 @@ router.post("/criar", async (req, res) => {
     documento = documento.replace(/\D/g, "");
     email = email.trim().toLowerCase();
 
-    // 🔍 verifica loja existente
-    const lojaExiste = await Loja.findOne({ documento }).session(session);
+    // 🔍 verifica duplicidade
+    const lojaExiste = await Loja.findOne({ documento });
     if (lojaExiste) {
-      await session.abortTransaction();
       return res.status(400).json({ mensagem: "CPF/CNPJ já cadastrado" });
     }
 
-    // 🔍 verifica usuário existente
-    const usuarioExiste = await Usuario.findOne({ email }).session(session);
+    const usuarioExiste = await Usuario.findOne({ email });
     if (usuarioExiste) {
-      await session.abortTransaction();
       return res.status(400).json({ mensagem: "Email já cadastrado" });
     }
 
     // 🏪 cria loja
-    const [loja] = await Loja.create(
-      [{ nome, documento }],
-      { session }
-    );
+    const loja = await Loja.create({ nome, documento });
 
     // 👤 cria admin
-    const [admin] = await Usuario.create(
-      [{
-        email,
-        senha,
-        tipo: "admin",
-        lojaId: loja._id
-      }],
-      { session }
-    );
+    const admin = await Usuario.create({
+      email,
+      senha,
+      tipo: "admin",
+      lojaId: loja._id
+    });
 
-    await session.commitTransaction();
-    session.endSession();
-
-    // 🔐 GERA TOKEN (AUTO LOGIN)
+    // 🔐 token (auto login)
     const token = jwt.sign(
       {
         id: admin._id,
@@ -85,15 +66,12 @@ router.post("/criar", async (req, res) => {
     });
 
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
+    console.log("ERRO CRIAR LOJA:", err);
 
-    // 🔥 trata erro de duplicidade do Mongo
     if (err.code === 11000) {
       return res.status(400).json({ mensagem: "Dados já cadastrados" });
     }
 
-    console.log("ERRO CRIAR LOJA:", err);
     res.status(500).json({ mensagem: "Erro ao criar loja" });
   }
 });
