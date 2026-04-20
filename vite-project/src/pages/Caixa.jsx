@@ -7,28 +7,28 @@ export default function Caixa() {
   const [relatorio, setRelatorio] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  // 🔐 Proteção localStorage
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // 🔥 verificar caixa
+  // 🔍 verificar caixa
   async function verificar() {
     try {
       const res = await api.get("/caixa");
 
-      if (res.data) {
+      if (res.data?.status === "aberto") {
         setCaixaAberto(true);
       } else {
         setCaixaAberto(false);
         setRelatorio(null);
       }
+
     } catch (err) {
-      console.log("Erro caixa:", err);
+      console.log("Erro caixa:", err.message);
     }
   }
 
   useEffect(() => {
     verificar();
-    const intervalo = setInterval(verificar, 5000);
-    return () => clearInterval(intervalo);
   }, []);
 
   // 🟢 abrir caixa
@@ -50,7 +50,14 @@ export default function Caixa() {
       await verificar();
 
     } catch (err) {
-      alert(err.response?.data || "Erro ao abrir caixa");
+      const mensagem =
+        err.response?.data?.mensagem ||
+        err.response?.data ||
+        err.message ||
+        "Erro ao abrir caixa";
+
+      alert(typeof mensagem === "string" ? mensagem : JSON.stringify(mensagem));
+
     } finally {
       setLoading(false);
     }
@@ -67,16 +74,18 @@ export default function Caixa() {
       setCaixaAberto(false);
 
     } catch (err) {
-  const mensagem =
-    err.response?.data?.mensagem ||
-    err.response?.data ||
-    err.message ||
-    "Erro ao fechar caixa";
+      const mensagem =
+        err.response?.data?.mensagem ||
+        err.response?.data ||
+        err.message ||
+        "Erro ao fechar caixa";
 
-  alert(typeof mensagem === "string" ? mensagem : JSON.stringify(mensagem));
-} finally {
-  setLoading(false);
-}}
+      alert(typeof mensagem === "string" ? mensagem : JSON.stringify(mensagem));
+
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -93,7 +102,7 @@ export default function Caixa() {
         </p>
 
         <p className="text-sm text-gray-500 mb-3">
-          👤 {user?.email}
+          👤 {user?.email || "Usuário não identificado"}
         </p>
 
         <input
@@ -108,7 +117,7 @@ export default function Caixa() {
           <button
             onClick={abrir}
             disabled={loading}
-            className="bg-green-500 text-white w-full p-2"
+            className="bg-green-500 text-white w-full p-2 rounded"
           >
             {loading ? "Abrindo..." : "Abrir Caixa"}
           </button>
@@ -116,7 +125,7 @@ export default function Caixa() {
           <button
             onClick={fechar}
             disabled={loading}
-            className="bg-red-500 text-white w-full p-2"
+            className="bg-red-500 text-white w-full p-2 rounded"
           >
             {loading ? "Fechando..." : "Fechar Caixa"}
           </button>
