@@ -53,7 +53,7 @@ router.post("/criar", async (req, res) => {
 
     console.log("LOJA CRIADA:", loja);
 
-    // cria usuário admin
+    // cria admin
     const admin = await Usuario.create({
       email,
       senha,
@@ -63,7 +63,7 @@ router.post("/criar", async (req, res) => {
 
     console.log("ADMIN CRIADO:", admin);
 
-    // gera token
+    // token
     const token = jwt.sign(
       {
         id: admin._id,
@@ -75,11 +75,13 @@ router.post("/criar", async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    // resposta final
     return res.status(201).json({
       mensagem: "Loja criada com sucesso",
       token,
       user: {
         id: admin._id,
+        nome: loja.nome, // 🔥 CORREÇÃO AQUI
         email: admin.email,
         tipo: admin.tipo,
         lojaId: loja._id

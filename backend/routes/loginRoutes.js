@@ -1,62 +1,88 @@
 const express = require("express");
 const router = express.Router();
 const Usuario = require("../models/Usuario");
+const Loja = require("../models/Loja");
 const jwt = require("jsonwebtoken");
 
-const SECRET = "segredo_super_forte";
+const SECRET = process.env.JWT_SECRET || "segredo_super_forte";
 
-// 🔐 LOGIN
+
+// LOGIN
 router.post("/", async (req, res) => {
   try {
     let { email, senha } = req.body;
 
-    // 🔧 limpar dados
+    // limpar dados
     email = email?.trim().toLowerCase();
     senha = senha?.trim();
 
     if (!email || !senha) {
-      return res.status(400).json({ erro: "Preencha todos os campos" });
+      return res.status(400).json({
+        erro: "Preencha todos os campos"
+      });
     }
 
-    // 🔎 buscar usuário + senha
-    const user = await Usuario.findOne({ email }).select("+senha");
+    // busca usuário + senha
+    const user = await Usuario
+      .findOne({ email })
+      .select("+senha");
 
     if (!user) {
-      return res.status(401).json({ erro: "Usuário não encontrado" });
+      return res.status(401).json({
+        erro: "Usuário não encontrado"
+      });
     }
 
-    // 🚫 usuário desativado
+    // usuário desativado
     if (!user.ativo) {
-      return res.status(403).json({ erro: "Usuário desativado" });
+      return res.status(403).json({
+        erro: "Usuário desativado"
+      });
     }
 
-    // 🔐 validar senha (usando método do model)
+    // validar senha
     const senhaValida = await user.compararSenha(senha);
 
     if (!senhaValida) {
-      return res.status(401).json({ erro: "Senha incorreta" });
+      return res.status(401).json({
+        erro: "Senha incorreta"
+      });
     }
 
-    // 🔥 gerar token
+    // buscar loja vinculada
+    const loja = await Loja.findById(user.lojaId);
+
+    // gerar token
     const token = jwt.sign(
-      { id: user._id, tipo: user.tipo },
+      {
+        id: user._id,
+        tipo: user.tipo,
+        lojaId: user.lojaId
+      },
       SECRET,
-      { expiresIn: "8h" }
+      {
+        expiresIn: "8h"
+      }
     );
 
-    // ✅ resposta limpa
+    // resposta
     res.json({
       token,
       user: {
         _id: user._id,
+        nome: loja?.nome || "Minha Loja", // 🔥 aqui resolve
         email: user.email,
-        tipo: user.tipo
+        tipo: user.tipo,
+        lojaId: user.lojaId
       }
     });
 
   } catch (err) {
     console.log("Erro no login:", err);
-    res.status(500).json({ erro: "Erro no servidor" });
+
+    res.status(500).json({
+      erro: err.message
+    });
   }
 });
 
