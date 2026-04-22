@@ -4,7 +4,6 @@ const Caixa = require("../models/Caixa");
 
 router.post("/abrir", async (req, res) => {
   try {
-    // verifica se já existe caixa aberto
     const caixaAberto = await Caixa.findOne({
       status: "aberto"
     });
@@ -15,12 +14,14 @@ router.post("/abrir", async (req, res) => {
       });
     }
 
-    // cria com valor inicial automático
     const caixa = await Caixa.create({
-      valorInicial: 0,
-      saldoAtual: 0,
-      status: "aberto",
-      dataAbertura: new Date()
+      abertoPor: "Admin", // depois pode pegar do usuário logado
+      saldoInicial: 0,
+      entradas: 0,
+      saidas: 0,
+      totalVendas: 0,
+      lucro: 0,
+      status: "aberto"
     });
 
     res.json({
@@ -29,9 +30,10 @@ router.post("/abrir", async (req, res) => {
     });
 
   } catch (err) {
-    console.log(err);
+    console.log("ERRO REAL CAIXA:", err);
+
     res.status(500).json({
-      erro: "Erro ao abrir caixa"
+      erro: err.message
     });
   }
 });
