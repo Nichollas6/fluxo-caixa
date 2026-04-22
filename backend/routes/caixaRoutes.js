@@ -2,13 +2,15 @@ const express = require("express");
 const router = express.Router();
 const Caixa = require("../models/Caixa");
 
-// 🔍 VER CAIXA ABERTO (ESSENCIAL pro front)
+
+// 🔍 PEGAR CAIXA ATUAL (último e aberto)
 router.get("/", async (req, res) => {
   try {
-    const caixa = await Caixa.findOne({ status: "aberto" });
+    const caixa = await Caixa.findOne()
+      .sort({ createdAt: -1 });
 
     return res.json({
-      caixa: caixa || null,
+      caixa: caixa?.status === "aberto" ? caixa : null,
     });
 
   } catch (err) {
@@ -22,6 +24,7 @@ router.get("/", async (req, res) => {
 // 🟢 ABRIR CAIXA
 router.post("/abrir", async (req, res) => {
   try {
+    // 🔥 impede duplicado REAL
     const caixaAberto = await Caixa.findOne({ status: "aberto" });
 
     if (caixaAberto) {
@@ -31,13 +34,14 @@ router.post("/abrir", async (req, res) => {
     }
 
     const caixa = await Caixa.create({
-      abertoPor: req.body.usuario || "Admin",
-      saldoInicial: req.body.valor || 0,
+      abertoPor: req.body.abertoPor || req.body.usuario || "Admin",
+      saldoInicial: Number(req.body.saldoInicial || 0),
       entradas: 0,
       saidas: 0,
       totalVendas: 0,
       lucro: 0,
       status: "aberto",
+      dataAbertura: new Date(),
     });
 
     return res.json({
@@ -46,7 +50,7 @@ router.post("/abrir", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("ERRO REAL CAIXA:", err);
+    console.log("ERRO CAIXA ABRIR:", err);
 
     return res.status(500).json({
       erro: err.message,
@@ -74,8 +78,6 @@ router.post("/fechar", async (req, res) => {
     return res.json({
       mensagem: "Caixa fechado com sucesso",
       caixa,
-      totalVendas: caixa.totalVendas,
-      lucro: caixa.lucro,
     });
 
   } catch (err) {
@@ -84,5 +86,6 @@ router.post("/fechar", async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;
