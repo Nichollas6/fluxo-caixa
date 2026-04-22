@@ -20,6 +20,7 @@ export default function Login() {
 
       // salva token separado
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
 
       // salva apenas o objeto user
       localStorage.setItem(
@@ -33,7 +34,7 @@ export default function Login() {
       console.log("ERRO LOGIN:", err.response?.data);
 
       alert(
-        err.response?.data?.erro || 
+        err.response?.data?.erro ||
         "Login inválido"
       );
     }
