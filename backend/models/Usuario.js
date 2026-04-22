@@ -23,6 +23,13 @@ const UsuarioSchema = new mongoose.Schema(
       default: "vendedor"
     },
 
+    // 🔥 vínculo com loja
+    lojaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Loja",
+      required: true
+    },
+
     ativo: {
       type: Boolean,
       default: true
@@ -34,13 +41,11 @@ const UsuarioSchema = new mongoose.Schema(
 );
 
 
-// 🔥 HASH DA SENHA
+// HASH SENHA
 UsuarioSchema.pre("save", async function (next) {
   try {
-    // normaliza email
     this.email = this.email.trim().toLowerCase();
 
-    // só faz hash se a senha foi alterada
     if (!this.isModified("senha")) {
       return next();
     }
@@ -49,18 +54,18 @@ UsuarioSchema.pre("save", async function (next) {
     this.senha = await bcrypt.hash(this.senha, salt);
 
     next();
+
   } catch (err) {
     next(err);
   }
 });
 
 
-// 🔐 COMPARAR SENHA
+// comparar senha
 UsuarioSchema.methods.compararSenha = function (senha) {
   return bcrypt.compare(senha, this.senha);
 };
 
 
-// 🔥 EVITA DUPLICAÇÃO DO MODEL
 module.exports =
   mongoose.models.Usuario || mongoose.model("Usuario", UsuarioSchema);

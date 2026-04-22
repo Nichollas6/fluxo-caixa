@@ -23,11 +23,7 @@ const LojaSchema = new mongoose.Schema(
 );
 
 
-// 🔥 índice garantido
-LojaSchema.index({ documento: 1 }, { unique: true });
-
-
-// 🔥 NORMALIZA CPF/CNPJ
+// normaliza CPF/CNPJ
 LojaSchema.pre("save", function (next) {
   if (this.documento) {
     this.documento = this.documento.replace(/\D/g, "");
@@ -36,10 +32,11 @@ LojaSchema.pre("save", function (next) {
       return next(new Error("Documento inválido"));
     }
   }
+
   next();
 });
 
 
-// 🔥 evita duplicação do model
+// evita duplicação model
 module.exports =
   mongoose.models.Loja || mongoose.model("Loja", LojaSchema);

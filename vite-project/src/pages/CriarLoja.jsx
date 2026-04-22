@@ -1,71 +1,135 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 export default function CriarLoja() {
-  const [nome, setNome] = useState("");
-  const [documento, setDocumento] = useState("");
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const [form, setForm] = useState({
+    nome: "",
+    documento: "",
+    email: "",
+    senha: ""
+  });
 
-  async function criar() {
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  function handleChange(e) {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    });
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    console.log("🔥 BOTÃO CLICADO", form);
+
+    // 🔥 validação simples
+    if (!form.nome || !form.documento || !form.email || !form.senha) {
+      alert("Preencha todos os campos");
+      return;
+    }
+
     try {
-      await api.post("/lojas/criar", {
-        nome,
-        documento,
-        email,
-        senha
-      });
+      setLoading(true);
+
+      console.log("🚀 enviando pro backend...");
+
+      const res = await api.post("/loja/criar", form);
+
+      console.log("✅ RESPOSTA:", res.data);
 
       alert("Loja criada com sucesso!");
 
-      setNome("");
-      setDocumento("");
-      setEmail("");
-      setSenha("");
+      localStorage.setItem("token", res.data.token);
+localStorage.setItem("user", JSON.stringify(res.data.user));
+
+navigate("/");
 
     } catch (err) {
-      alert(err.response?.data?.erro || "Erro");
+      console.log("❌ ERRO COMPLETO:", err);
+      console.log("❌ RESPONSE:", err.response);
+
+      const mensagem =
+        err.response?.data?.mensagem ||
+        err.response?.data ||
+        err.message ||
+        "Erro ao criar loja";
+
+      alert(typeof mensagem === "string" ? mensagem : JSON.stringify(mensagem));
+
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div className="p-6 max-w-md mx-auto bg-white shadow">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
 
-      <h1 className="text-xl font-bold mb-4">
-        🏪 Criar Loja
-      </h1>
-
-      <input
-        placeholder="Nome da loja"
-        className="border p-2 w-full mb-2"
-        onChange={(e) => setNome(e.target.value)}
-      />
-
-      <input
-        placeholder="CPF ou CNPJ"
-        className="border p-2 w-full mb-2"
-        onChange={(e) => setDocumento(e.target.value)}
-      />
-
-      <input
-        placeholder="Email admin"
-        className="border p-2 w-full mb-2"
-        onChange={(e) => setEmail(e.target.value)}
-      />
-
-      <input
-        type="password"
-        placeholder="Senha admin"
-        className="border p-2 w-full mb-2"
-        onChange={(e) => setSenha(e.target.value)}
-      />
-
-      <button
-        onClick={criar}
-        className="bg-blue-600 text-white w-full p-2"
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-6 rounded shadow w-full max-w-md"
       >
-        Criar Loja
-      </button>
+        <h1 className="text-2xl font-bold mb-6 text-center">
+          🏪 Criar Nova Loja
+        </h1>
+
+        <input
+          type="text"
+          name="nome"
+          placeholder="Nome da loja"
+          value={form.nome}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3"
+        />
+
+        <input
+          type="text"
+          name="documento"
+          placeholder="CPF ou CNPJ"
+          value={form.documento}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3"
+        />
+
+        <input
+          type="email"
+          name="email"
+          placeholder="Email do admin"
+          value={form.email}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3"
+        />
+
+        <input
+          type="password"
+          name="senha"
+          placeholder="Senha"
+          value={form.senha}
+          onChange={handleChange}
+          className="border p-2 w-full mb-4"
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-black text-white w-full p-2 rounded"
+        >
+          {loading ? "Criando..." : "Criar Loja"}
+        </button>
+
+        <p className="text-sm text-center mt-4">
+          Já tem conta?{" "}
+          <span
+            onClick={() => navigate("/login")}
+            className="text-blue-600 cursor-pointer"
+          >
+            Entrar
+          </span>
+        </p>
+
+      </form>
 
     </div>
   );
