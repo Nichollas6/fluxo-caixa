@@ -30,7 +30,13 @@ router.post("/abrir", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("ERRO REAL CAIXA:", err);
+  console.log("ERRO REAL CAIXA:", err);
+
+  return res.status(500).json({
+    erro: err.message,
+    code: err.code,
+    stack: err.stack
+  });
 
     res.status(500).json({
       erro: err.message
