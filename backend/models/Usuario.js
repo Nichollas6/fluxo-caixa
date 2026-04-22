@@ -5,7 +5,7 @@ const UsuarioSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-      required: true,
+      required: [true, "Email é obrigatório"],
       unique: true,
       lowercase: true,
       trim: true
@@ -13,7 +13,7 @@ const UsuarioSchema = new mongoose.Schema(
 
     senha: {
       type: String,
-      required: true,
+      required: [true, "Senha é obrigatória"],
       select: false
     },
 
@@ -23,11 +23,11 @@ const UsuarioSchema = new mongoose.Schema(
       default: "vendedor"
     },
 
-    // 🔥 vínculo com loja
+    // vínculo com loja
     lojaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Loja",
-      required: true
+      required: [true, "Loja é obrigatória"]
     },
 
     ativo: {
@@ -41,11 +41,15 @@ const UsuarioSchema = new mongoose.Schema(
 );
 
 
-// HASH SENHA
+// HASH DA SENHA
 UsuarioSchema.pre("save", async function (next) {
   try {
-    this.email = this.email.trim().toLowerCase();
+    // normaliza email
+    if (this.email) {
+      this.email = this.email.trim().toLowerCase();
+    }
 
+    // só faz hash se senha foi alterada
     if (!this.isModified("senha")) {
       return next();
     }
@@ -62,10 +66,12 @@ UsuarioSchema.pre("save", async function (next) {
 
 
 // comparar senha
-UsuarioSchema.methods.compararSenha = function (senha) {
-  return bcrypt.compare(senha, this.senha);
+UsuarioSchema.methods.compararSenha = function (senhaDigitada) {
+  return bcrypt.compare(senhaDigitada, this.senha);
 };
 
 
+// evita duplicação no nodemon/render
 module.exports =
-  mongoose.models.Usuario || mongoose.model("Usuario", UsuarioSchema);
+  mongoose.models.Usuario ||
+  mongoose.model("Usuario", UsuarioSchema);
