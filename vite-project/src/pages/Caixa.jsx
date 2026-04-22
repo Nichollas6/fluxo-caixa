@@ -7,7 +7,6 @@ export default function Caixa() {
   const [relatorio, setRelatorio] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔐 Proteção localStorage
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   // 🔍 verificar caixa
@@ -15,7 +14,9 @@ export default function Caixa() {
     try {
       const res = await api.get("/caixa");
 
-      if (res.data?.status === "aberto") {
+      const caixa = res.data?.caixa || res.data;
+
+      if (caixa?.status === "aberto") {
         setCaixaAberto(true);
       } else {
         setCaixaAberto(false);
@@ -23,11 +24,8 @@ export default function Caixa() {
       }
 
     } catch (err) {
-  console.log("❌ ERRO COMPLETO:", err);
-  console.log("❌ RESPONSE:", err.response);
-
-  alert(JSON.stringify(err.response?.data || err.message));
-}
+      console.log("ERRO:", err.response?.data || err.message);
+    }
   }
 
   useEffect(() => {
@@ -45,21 +43,15 @@ export default function Caixa() {
       setLoading(true);
 
       await api.post("/caixa/abrir", {
-        usuario: user?.email,
-        valor: Number(saldo)
+        abertoPor: user?.email,
+        saldoInicial: Number(saldo), // ✔ CORRIGIDO
       });
 
       setSaldo("");
       await verificar();
 
     } catch (err) {
-      const mensagem =
-        err.response?.data?.mensagem ||
-        err.response?.data ||
-        err.message ||
-        "Erro ao abrir caixa";
-
-      alert(typeof mensagem === "string" ? mensagem : JSON.stringify(mensagem));
+      alert(err.response?.data?.erro || err.message);
 
     } finally {
       setLoading(false);
@@ -77,13 +69,7 @@ export default function Caixa() {
       setCaixaAberto(false);
 
     } catch (err) {
-      const mensagem =
-        err.response?.data?.mensagem ||
-        err.response?.data ||
-        err.message ||
-        "Erro ao fechar caixa";
-
-      alert(typeof mensagem === "string" ? mensagem : JSON.stringify(mensagem));
+      alert(err.response?.data?.erro || err.message);
 
     } finally {
       setLoading(false);
@@ -148,7 +134,7 @@ export default function Caixa() {
           <hr className="my-2" />
 
           <p className="font-bold">
-            Saldo final: R$ {relatorio?.caixa?.saldoFinal || 0}
+            Saldo final: R$ {relatorio?.caixa?.saldoAtual || 0}
           </p>
 
         </div>
