@@ -1,42 +1,62 @@
 const express = require("express");
 const router = express.Router();
-const Caixa = require("../models/Caixa");
-const Venda = require("../models/Venda");
 
-// 🔍 BUSCAR CAIXA ABERTO
-router.get("/", async (req, res) => {
+const Caixa = require("../models/Caixa");
+
+
+// =============================
+// ABRIR CAIXA
+// =============================
+router.post("/abrir", async (req, res) => {
   try {
-    const caixa = await Caixa.findOne({ status: "aberto" });
-    res.json(caixa);
+    const { abertoPor, saldoInicial } = req.body;
+
+    // validação
+    if (!abertoPor) {
+      return res.status(400).json({
+        mensagem: "Informe quem está abrindo o caixa"
+      });
+    }
+
+    // verifica se já existe caixa aberto
+    const caixaAberto = await Caixa.findOne({
+      status: "aberto"
+    });
+
+    if (caixaAberto) {
+      return res.status(400).json({
+        mensagem: "Já existe um caixa aberto"
+      });
+    }
+
+    const novoCaixa = await Caixa.create({
+      abertoPor,
+      saldoInicial: Number(saldoInicial) || 0,
+      saldoAtual: Number(saldoInicial) || 0,
+      status: "aberto"
+    });
+
+    res.status(201).json({
+      mensagem: "Caixa aberto com sucesso",
+      caixa: novoCaixa
+    });
+
   } catch (err) {
-    console.log(err);
-    res.status(500).json("Erro ao buscar caixa");
+    console.log("ERRO ABRIR CAIXA:", err);
+
+    res.status(500).json({
+      mensagem: err.message
+    });
   }
 });
 
-// 🟢 ABRIR CAIXA
-router.post("/abrir", async (req, res) => {
+
+// =============================
+// BUSCAR CAIXA ABERTO
+// =============================
+router.get("/", async (req, res) => {
   try {
-    const { usuario, valor } = req.body;
-
-    if (!valor) {
-      return res.status(400).json("Informe o saldo inicial");
-    }
-
-    const existente = await Caixa.findOne({ status: "aberto" });
-
-    if (existente) {
-      return res.status(400).json("Já existe caixa aberto");
-    }
-
-    const saldoInicial = Number(valor);
-
-    const caixa = await Caixa.create({
-      abertoPor: usuario,
-      saldoInicial,
-      saldoAtual: saldoInicial, // 🔥 CORRETO
-      entradas: 0,
-      saidas: 0,
+    const caixa = await Caixa.findOne({
       status: "aberto"
     });
 
@@ -44,71 +64,45 @@ router.post("/abrir", async (req, res) => {
 
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ao abrir caixa");
+
+    res.status(500).json({
+      mensagem: err.message
+    });
   }
 });
 
-// 🔴 FECHAR CAIXA + RELATÓRIO
+
+// =============================
+// FECHAR CAIXA
+// =============================
 router.post("/fechar", async (req, res) => {
   try {
-    const caixa = await Caixa.findOne({ status: "aberto" });
-
-    if (!caixa) {
-      return res.status(400).json("Nenhum caixa aberto");
-    }
-
-    const inicio = new Date(caixa.dataAbertura);
-    const fim = new Date();
-
-    const vendas = await Venda.find({
-      data: { $gte: inicio, $lte: fim }
+    const caixa = await Caixa.findOne({
+      status: "aberto"
     });
 
-    const totalVendas = vendas.reduce(
-      (acc, v) => acc + Number(v.valor || 0),
-      0
-    );
-
-    const lucro = vendas.reduce(
-      (acc, v) => acc + Number(v.lucro || 0),
-      0
-    );
-
-    // 🔥 ATUALIZAÇÃO CORRETA
-    caixa.totalVendas = totalVendas;
-    caixa.lucro = lucro;
-
-    caixa.saldoAtual =
-      Number(caixa.saldoInicial || 0) +
-      totalVendas -
-      Number(caixa.saidas || 0);
+    if (!caixa) {
+      return res.status(400).json({
+        mensagem: "Nenhum caixa aberto"
+      });
+    }
 
     caixa.status = "fechado";
-    caixa.dataFechamento = fim;
+    caixa.dataFechamento = new Date();
 
     await caixa.save();
 
     res.json({
-      caixa,
-      totalVendas,
-      lucro,
-      quantidade: vendas.length
+      mensagem: "Caixa fechado com sucesso",
+      caixa
     });
 
   } catch (err) {
-    console.log(err);
-    res.status(500).json("Erro ao fechar caixa");
-  }
-});
+    console.log("ERRO FECHAR CAIXA:", err);
 
-// 📜 HISTÓRICO
-router.get("/historico", async (req, res) => {
-  try {
-    const lista = await Caixa.find().sort({ dataAbertura: -1 });
-    res.json(lista);
-  } catch (err) {
-    console.log(err);
-    res.status(500).json("Erro ao buscar histórico");
+    res.status(500).json({
+      mensagem: err.message
+    });
   }
 });
 
