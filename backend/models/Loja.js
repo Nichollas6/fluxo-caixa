@@ -4,17 +4,17 @@ const LojaSchema = new mongoose.Schema(
   {
     nome: {
       type: String,
-      required: [true, "Nome da loja é obrigatório"],
+      required: true,
       trim: true
     },
 
     documento: {
       type: String,
-      required: [true, "CPF/CNPJ é obrigatório"],
-      trim: true,
+      required: true,
       unique: true,
-      minlength: [11, "Documento inválido"],
-      maxlength: [14, "Documento inválido"]
+      trim: true,
+      minlength: 11,
+      maxlength: 14
     }
   },
   {
@@ -23,29 +23,21 @@ const LojaSchema = new mongoose.Schema(
 );
 
 
-// normaliza CPF/CNPJ antes de salvar
-LojaSchema.pre("save", function (next) {
-  try {
-    if (this.documento) {
-      this.documento = this.documento.replace(/\D/g, "");
+// normaliza CPF/CNPJ
+LojaSchema.pre("save", async function () {
+  if (this.documento) {
+    this.documento = this.documento.replace(/\D/g, "");
 
-      if (
-        this.documento.length < 11 ||
-        this.documento.length > 14
-      ) {
-        return next(new Error("CPF/CNPJ inválido"));
-      }
+    if (
+      this.documento.length < 11 ||
+      this.documento.length > 14
+    ) {
+      throw new Error("Documento inválido");
     }
-
-    next();
-
-  } catch (err) {
-    next(err);
   }
 });
 
 
-// evita recompilar model
 module.exports =
   mongoose.models.Loja ||
   mongoose.model("Loja", LojaSchema);
