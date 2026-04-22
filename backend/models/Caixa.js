@@ -5,80 +5,76 @@ const CaixaSchema = new mongoose.Schema(
     abertoPor: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
 
     status: {
       type: String,
       enum: ["aberto", "fechado"],
-      default: "aberto"
+      default: "aberto",
     },
 
     saldoInicial: {
       type: Number,
       required: true,
-      min: 0
+      min: 0,
     },
 
     saldoAtual: {
       type: Number,
       default: 0,
-      min: 0
+      min: 0,
     },
 
     entradas: {
       type: Number,
       default: 0,
-      min: 0
+      min: 0,
     },
 
     saidas: {
       type: Number,
       default: 0,
-      min: 0
+      min: 0,
     },
 
     totalVendas: {
       type: Number,
       default: 0,
-      min: 0
+      min: 0,
     },
 
     lucro: {
       type: Number,
-      default: 0
+      default: 0,
     },
 
     dataAbertura: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
 
     dataFechamento: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
-
 
 // 🔥 GARANTE APENAS 1 CAIXA ABERTO
 CaixaSchema.index(
   { status: 1 },
-  { unique: true, partialFilterExpression: { status: "aberto" } }
+  { unique: true, partialFilterExpression: { status: { $eq: "aberto" } } }
 );
 
-
-// 🔥 ATUALIZA SALDO AUTOMATICAMENTE
-CaixaSchema.pre("save", function (next) {
+// 🔥 ATUALIZA SALDO AUTOMATICAMENTE (CORRIGIDO)
+CaixaSchema.pre("save", function () {
   this.saldoAtual =
     this.saldoInicial + this.entradas - this.saidas;
-  next();
 });
-
 
 // 🔥 EVITA DUPLICAÇÃO DO MODEL
 module.exports =
