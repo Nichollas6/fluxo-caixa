@@ -10,29 +10,32 @@ export default function Caixa() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   // 🔍 verificar caixa
- async function verificar() {
-  try {
-    const res = await api.get("/caixa");
+  async function verificar() {
+    try {
+      const res = await api.get("/caixa");
 
-    const caixaData = res.data?.caixa;
+      const caixaData = res.data?.caixa;
 
-    setCaixa(caixaData || null);
-    setCaixaAberto(!!caixaData); // 🔥 simplificado e seguro
+      setCaixa(caixaData || null);
 
-  } catch (err) {
-    console.log("ERRO:", err.response?.data || err.message);
+      // 💥 CORREÇÃO FINAL (NÃO usa !!)
+      setCaixaAberto(caixaData?.status === "aberto");
+
+    } catch (err) {
+      console.log("ERRO:", err.response?.data || err.message);
+    }
   }
-}
 
+  // 🔄 sincronização automática
   useEffect(() => {
-  verificar();
-
-  const interval = setInterval(() => {
     verificar();
-  }, 3000); // 🔥 atualiza a cada 3s
 
-  return () => clearInterval(interval);
-}, []);
+    const interval = setInterval(() => {
+      verificar();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // 🟢 abrir caixa
   async function abrir() {
@@ -47,7 +50,7 @@ export default function Caixa() {
       });
 
       setSaldo("");
-      await verificar(); // ✔ ATUALIZA ESTADO
+      await verificar();
 
     } catch (err) {
       alert(err.response?.data?.erro || err.message);
@@ -62,12 +65,11 @@ export default function Caixa() {
     try {
       setLoading(true);
 
-      const res = await api.post("/caixa/fechar");
+      await api.post("/caixa/fechar");
 
-      setCaixaAberto(false);
       setCaixa(null);
+      setCaixaAberto(false);
 
-      // ✔ atualiza estado depois de fechar
       await verificar();
 
     } catch (err) {
