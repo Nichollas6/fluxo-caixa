@@ -18,11 +18,10 @@ export default function Login() {
 
       console.log("LOGIN RESPONSE:", res.data);
 
-      // salva token separado
+      // salva token
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      // salva apenas o objeto user
+      // salva apenas o user
       localStorage.setItem(
         "user",
         JSON.stringify(res.data.user)

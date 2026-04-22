@@ -3,12 +3,15 @@ import axios from "axios";
 
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
-
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [tipo, setTipo] = useState("vendedor");
 
   const API = "https://fluxo-caixa-back.onrender.com";
+
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
 
   useEffect(() => {
     carregar();
@@ -16,16 +19,19 @@ export default function Usuarios() {
 
   async function carregar() {
     try {
-      const res = await axios.get(`${API}/usuarios`);
+      const res = await axios.get(
+        `${API}/usuarios/${user.lojaId}`
+      );
+
       setUsuarios(res.data);
+
     } catch (err) {
       console.log(err);
+      alert("Erro ao carregar usuários");
     }
   }
 
   async function salvar() {
-    console.log("CRIANDO USUÁRIO 🔥");
-
     try {
       if (!email || !senha) {
         alert("Preencha email e senha");
@@ -35,10 +41,11 @@ export default function Usuarios() {
       await axios.post(`${API}/usuarios`, {
         email,
         senha,
-        tipo
+        tipo,
+        lojaId: user.lojaId // vínculo correto
       });
 
-      alert("Usuário criado 🔥");
+      alert("Usuário criado com sucesso");
 
       setEmail("");
       setSenha("");
@@ -47,19 +54,22 @@ export default function Usuarios() {
       carregar();
 
     } catch (err) {
-      console.log(err);
-      alert("Erro ao criar usuário");
+      console.log(err.response?.data || err);
+      alert(
+        err.response?.data?.erro ||
+        "Erro ao criar usuário"
+      );
     }
   }
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-
-      <h1 className="text-3xl font-bold mb-6">👤 Usuários</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        👤 Usuários
+      </h1>
 
       {/* FORM */}
       <div className="bg-white p-6 rounded shadow mb-6 max-w-xl">
-
         <div className="grid gap-4">
 
           <input
@@ -82,8 +92,13 @@ export default function Usuarios() {
             onChange={(e) => setTipo(e.target.value)}
             className="border p-3 rounded"
           >
-            <option value="vendedor">Vendedor</option>
-            <option value="admin">Admin</option>
+            <option value="vendedor">
+              Vendedor
+            </option>
+
+            <option value="admin">
+              Admin
+            </option>
           </select>
 
           <button
@@ -94,20 +109,19 @@ export default function Usuarios() {
           </button>
 
         </div>
-
       </div>
 
       {/* LISTA */}
       <div className="bg-white p-6 rounded shadow">
-
-        {usuarios.map(u => (
-          <div key={u._id} className="border-b py-2">
+        {usuarios.map((u) => (
+          <div
+            key={u._id}
+            className="border-b py-2"
+          >
             {u.email} - {u.tipo}
           </div>
         ))}
-
       </div>
-
     </div>
   );
 }
