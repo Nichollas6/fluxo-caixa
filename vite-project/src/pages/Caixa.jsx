@@ -4,7 +4,7 @@ import api from "../services/api";
 export default function Caixa() {
   const [saldo, setSaldo] = useState("");
   const [caixaAberto, setCaixaAberto] = useState(false);
-  const [relatorio, setRelatorio] = useState(null);
+  const [caixa, setCaixa] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -14,13 +14,14 @@ export default function Caixa() {
     try {
       const res = await api.get("/caixa");
 
-      const caixa = res.data?.caixa || res.data;
+      const caixaData = res.data?.caixa;
 
-      if (caixa?.status === "aberto") {
+      if (caixaData?.status === "aberto") {
         setCaixaAberto(true);
+        setCaixa(caixaData);
       } else {
         setCaixaAberto(false);
-        setRelatorio(null);
+        setCaixa(null);
       }
 
     } catch (err) {
@@ -35,20 +36,17 @@ export default function Caixa() {
   // 🟢 abrir caixa
   async function abrir() {
     try {
-      if (!saldo) {
-        alert("Informe o saldo inicial");
-        return;
-      }
+      if (!saldo) return alert("Informe o saldo inicial");
 
       setLoading(true);
 
       await api.post("/caixa/abrir", {
         abertoPor: user?.email,
-        saldoInicial: Number(saldo), // ✔ CORRIGIDO
+        saldoInicial: Number(saldo),
       });
 
       setSaldo("");
-      await verificar();
+      await verificar(); // ✔ ATUALIZA ESTADO
 
     } catch (err) {
       alert(err.response?.data?.erro || err.message);
@@ -65,8 +63,11 @@ export default function Caixa() {
 
       const res = await api.post("/caixa/fechar");
 
-      setRelatorio(res.data);
       setCaixaAberto(false);
+      setCaixa(null);
+
+      // ✔ atualiza estado depois de fechar
+      await verificar();
 
     } catch (err) {
       alert(err.response?.data?.erro || err.message);
@@ -121,20 +122,22 @@ export default function Caixa() {
         )}
       </div>
 
-      {/* 📊 RELATÓRIO */}
-      {relatorio && (
+      {/* 📊 CAIXA REAL */}
+      {caixa && (
         <div className="bg-white p-6 mt-6 rounded shadow max-w-md">
 
-          <h2 className="font-bold mb-3">📊 Resumo</h2>
+          <h2 className="font-bold mb-3">📊 Caixa Atual</h2>
 
-          <p>Entradas: R$ {relatorio?.totalVendas || 0}</p>
-          <p>Lucro: R$ {relatorio?.lucro || 0}</p>
-          <p>Vendas: {relatorio?.quantidade || 0}</p>
+          <p>Saldo inicial: R$ {caixa.saldoInicial}</p>
+          <p>Entradas: R$ {caixa.entradas}</p>
+          <p>Saídas: R$ {caixa.saidas}</p>
+          <p>Total vendas: R$ {caixa.totalVendas}</p>
+          <p>Lucro: R$ {caixa.lucro}</p>
 
           <hr className="my-2" />
 
           <p className="font-bold">
-            Saldo final: R$ {relatorio?.caixa?.saldoAtual || 0}
+            Saldo atual: R$ {caixa.saldoAtual}
           </p>
 
         </div>
