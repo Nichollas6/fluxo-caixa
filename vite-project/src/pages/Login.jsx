@@ -7,7 +7,6 @@ export default function Login() {
   const [senha, setSenha] = useState("");
   const navigate = useNavigate();
 
-  // 🔥 URL DO BACKEND ONLINE
   const API = "https://fluxo-caixa-back.onrender.com";
 
   async function entrar() {
@@ -17,16 +16,26 @@ export default function Login() {
         senha: senha.trim(),
       });
 
-      // 💾 salva usuário
-      localStorage.setItem("user", JSON.stringify(res.data));
+      console.log("LOGIN RESPONSE:", res.data);
 
-      // 🚀 redireciona
+      // salva token separado
+      localStorage.setItem("token", res.data.token);
+
+      // salva apenas o objeto user
+      localStorage.setItem(
+        "user",
+        JSON.stringify(res.data.user)
+      );
+
       navigate("/");
 
     } catch (err) {
       console.log("ERRO LOGIN:", err.response?.data);
 
-      alert(err.response?.data?.erro || "Login inválido");
+      alert(
+        err.response?.data?.erro || 
+        "Login inválido"
+      );
     }
   }
 
@@ -60,7 +69,6 @@ export default function Login() {
           Entrar
         </button>
 
-        {/* 🔥 BOTÃO CRIAR CONTA */}
         <p className="text-sm text-center mt-2">
           Não tem conta?{" "}
           <span
