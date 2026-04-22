@@ -23,8 +23,11 @@ export default function Caixa() {
       }
 
     } catch (err) {
-      console.log("Erro caixa:", err.message);
-    }
+  console.log("❌ ERRO COMPLETO:", err);
+  console.log("❌ RESPONSE:", err.response);
+
+  alert(JSON.stringify(err.response?.data || err.message));
+}
   }
 
   useEffect(() => {
