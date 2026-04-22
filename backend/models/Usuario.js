@@ -23,7 +23,6 @@ const UsuarioSchema = new mongoose.Schema(
       default: "vendedor"
     },
 
-    // vínculo com loja
     lojaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Loja",
@@ -42,26 +41,19 @@ const UsuarioSchema = new mongoose.Schema(
 
 
 // HASH DA SENHA
-UsuarioSchema.pre("save", async function (next) {
-  try {
-    // normaliza email
-    if (this.email) {
-      this.email = this.email.trim().toLowerCase();
-    }
-
-    // só faz hash se senha foi alterada
-    if (!this.isModified("senha")) {
-      return next();
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    this.senha = await bcrypt.hash(this.senha, salt);
-
-    next();
-
-  } catch (err) {
-    next(err);
+UsuarioSchema.pre("save", async function () {
+  // normaliza email
+  if (this.email) {
+    this.email = this.email.trim().toLowerCase();
   }
+
+  // só faz hash se senha mudou
+  if (!this.isModified("senha")) {
+    return;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.senha = await bcrypt.hash(this.senha, salt);
 });
 
 
@@ -71,7 +63,7 @@ UsuarioSchema.methods.compararSenha = function (senhaDigitada) {
 };
 
 
-// evita duplicação no nodemon/render
+// evita duplicação
 module.exports =
   mongoose.models.Usuario ||
   mongoose.model("Usuario", UsuarioSchema);
