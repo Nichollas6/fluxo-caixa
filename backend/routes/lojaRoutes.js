@@ -11,30 +11,49 @@ router.post("/criar", async (req, res) => {
   try {
     let { nome, documento, email, senha } = req.body;
 
-    // 🔥 validação
+    console.log("BODY RECEBIDO:", req.body);
+
+    // validação
     if (!nome || !documento || !email || !senha) {
-      return res.status(400).json({ mensagem: "Preencha todos os campos" });
+      return res.status(400).json({
+        mensagem: "Preencha todos os campos"
+      });
     }
 
-    // 🔥 normalização
+    // normalização
     documento = documento.replace(/\D/g, "");
     email = email.trim().toLowerCase();
 
-    // 🔍 verifica duplicidade
+    console.log("Documento normalizado:", documento);
+    console.log("Email normalizado:", email);
+
+    // verifica loja existente
     const lojaExiste = await Loja.findOne({ documento });
+
     if (lojaExiste) {
-      return res.status(400).json({ mensagem: "CPF/CNPJ já cadastrado" });
+      return res.status(400).json({
+        mensagem: "CPF/CNPJ já cadastrado"
+      });
     }
 
+    // verifica usuário existente
     const usuarioExiste = await Usuario.findOne({ email });
+
     if (usuarioExiste) {
-      return res.status(400).json({ mensagem: "Email já cadastrado" });
+      return res.status(400).json({
+        mensagem: "Email já cadastrado"
+      });
     }
 
-    // 🏪 cria loja
-    const loja = await Loja.create({ nome, documento });
+    // cria loja
+    const loja = await Loja.create({
+      nome,
+      documento
+    });
 
-    // 👤 cria admin
+    console.log("LOJA CRIADA:", loja);
+
+    // cria usuário admin
     const admin = await Usuario.create({
       email,
       senha,
@@ -42,7 +61,9 @@ router.post("/criar", async (req, res) => {
       lojaId: loja._id
     });
 
-    // 🔐 token (auto login)
+    console.log("ADMIN CRIADO:", admin);
+
+    // gera token
     const token = jwt.sign(
       {
         id: admin._id,
@@ -54,7 +75,7 @@ router.post("/criar", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       mensagem: "Loja criada com sucesso",
       token,
       user: {
@@ -66,13 +87,12 @@ router.post("/criar", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("ERRO CRIAR LOJA:", err);
+    console.log("ERRO REAL:", err);
 
-    if (err.code === 11000) {
-      return res.status(400).json({ mensagem: "Dados já cadastrados" });
-    }
-
-    res.status(500).json({ mensagem: "Erro ao criar loja" });
+    return res.status(500).json({
+      mensagem: err.message,
+      stack: err.stack
+    });
   }
 });
 
