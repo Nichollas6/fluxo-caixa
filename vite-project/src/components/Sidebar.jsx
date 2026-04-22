@@ -5,14 +5,18 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
+
+  console.log("USER SIDEBAR:", user);
 
   function sair() {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     navigate("/login");
   }
 
-  // 🎯 estilo ativo
   const linkClass = ({ isActive }) =>
     `flex items-center gap-2 p-2 rounded transition ${
       isActive
@@ -22,7 +26,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* BOTÃO MOBILE */}
+      {/* botão mobile */}
       <button
         onClick={() => setOpen(true)}
         className="md:hidden fixed top-4 left-4 bg-black text-white p-2 rounded z-50"
@@ -30,7 +34,6 @@ export default function Sidebar() {
         ☰
       </button>
 
-      {/* OVERLAY */}
       {open && (
         <div
           onClick={() => setOpen(false)}
@@ -38,7 +41,6 @@ export default function Sidebar() {
         />
       )}
 
-      {/* SIDEBAR */}
       <div
         className={`
           fixed md:relative top-0 left-0 h-full w-64 bg-[#111827] text-white p-6 z-50
@@ -46,7 +48,6 @@ export default function Sidebar() {
           md:translate-x-0 transition-transform duration-300
         `}
       >
-        {/* FECHAR MOBILE */}
         <button
           onClick={() => setOpen(false)}
           className="md:hidden mb-4"
@@ -54,59 +55,81 @@ export default function Sidebar() {
           ❌
         </button>
 
-        {/* LOGO */}
-        <h1 className="text-2xl font-bold mb-6">MK Imports</h1>
+        <h1 className="text-2xl font-bold mb-6">
+          MK Imports
+        </h1>
 
-        {/* MENU */}
         <nav className="space-y-2 flex flex-col">
-
-          <NavLink to="/" className={linkClass} onClick={() => setOpen(false)}>
-            📊 <span>Home</span>
+          <NavLink
+            to="/"
+            className={linkClass}
+          >
+            📊 Home
           </NavLink>
 
-          <NavLink to="/vendas" className={linkClass} onClick={() => setOpen(false)}>
-            🛒 <span>Vendas</span>
+          <NavLink
+            to="/vendas"
+            className={linkClass}
+          >
+            🛒 Vendas
           </NavLink>
 
-          <NavLink to="/produtos" className={linkClass} onClick={() => setOpen(false)}>
-            📦 <span>Produtos</span>
+          <NavLink
+            to="/produtos"
+            className={linkClass}
+          >
+            📦 Produtos
           </NavLink>
 
-          <NavLink to="/clientes" className={linkClass} onClick={() => setOpen(false)}>
-            👤 <span>Clientes</span>
+          <NavLink
+            to="/clientes"
+            className={linkClass}
+          >
+            👤 Clientes
           </NavLink>
 
-          <NavLink to="/caixa" className={linkClass} onClick={() => setOpen(false)}>
-            🧾 <span>Caixa</span>
+          <NavLink
+            to="/caixa"
+            className={linkClass}
+          >
+            🧾 Caixa
           </NavLink>
 
-          {/* ADMIN */}
           {user?.tipo === "admin" && (
             <>
-              <NavLink to="/financeiro" className={linkClass} onClick={() => setOpen(false)}>
-                💸 <span>Financeiro</span>
+              <NavLink
+                to="/financeiro"
+                className={linkClass}
+              >
+                💸 Financeiro
               </NavLink>
 
-              <NavLink to="/usuarios" className={linkClass} onClick={() => setOpen(false)}>
-                👤 <span>Usuários</span>
+              <NavLink
+                to="/usuarios"
+                className={linkClass}
+              >
+                👥 Usuários
               </NavLink>
             </>
           )}
-
         </nav>
 
-        {/* RODAPÉ */}
         <div className="mt-6 border-t pt-4">
-          <p className="text-sm text-gray-400">👤 {user?.email || "Usuário"}</p>
+          <p className="text-sm text-gray-400">
+            👤 {user?.email || "Usuário"}
+          </p>
+
+          <p className="text-xs text-gray-500 mt-1">
+            Tipo: {user?.tipo || "não definido"}
+          </p>
 
           <button
             onClick={sair}
-            className="mt-2 bg-red-500 hover:bg-red-600 w-full p-2 rounded transition"
+            className="mt-3 bg-red-500 hover:bg-red-600 w-full p-2 rounded"
           >
             Sair
           </button>
         </div>
-
       </div>
     </>
   );
