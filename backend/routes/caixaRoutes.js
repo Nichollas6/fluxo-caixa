@@ -6,17 +6,12 @@ const Caixa = require("../models/Caixa");
 // 🔍 PEGAR CAIXA ATUAL (último e aberto)
 router.get("/", async (req, res) => {
   try {
-    const caixa = await Caixa.findOne()
-      .sort({ createdAt: -1 });
+    const caixa = await Caixa.findOne({ status: "aberto" });
 
-    return res.json({
-      caixa: caixa?.status === "aberto" ? caixa : null,
-    });
+    return res.json({ caixa });
 
   } catch (err) {
-    return res.status(500).json({
-      erro: err.message,
-    });
+    return res.status(500).json({ erro: err.message });
   }
 });
 
