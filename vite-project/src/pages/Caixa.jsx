@@ -10,28 +10,29 @@ export default function Caixa() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   // 🔍 verificar caixa
-  async function verificar() {
-    try {
-      const res = await api.get("/caixa");
+ async function verificar() {
+  try {
+    const res = await api.get("/caixa");
 
-      const caixaData = res.data?.caixa;
+    const caixaData = res.data?.caixa;
 
-      if (caixaData?.status === "aberto") {
-        setCaixaAberto(true);
-        setCaixa(caixaData);
-      } else {
-        setCaixaAberto(false);
-        setCaixa(null);
-      }
+    setCaixa(caixaData || null);
+    setCaixaAberto(!!caixaData); // 🔥 simplificado e seguro
 
-    } catch (err) {
-      console.log("ERRO:", err.response?.data || err.message);
-    }
+  } catch (err) {
+    console.log("ERRO:", err.response?.data || err.message);
   }
+}
 
   useEffect(() => {
+  verificar();
+
+  const interval = setInterval(() => {
     verificar();
-  }, []);
+  }, 3000); // 🔥 atualiza a cada 3s
+
+  return () => clearInterval(interval);
+}, []);
 
   // 🟢 abrir caixa
   async function abrir() {
