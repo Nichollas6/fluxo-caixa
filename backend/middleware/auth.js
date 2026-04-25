@@ -1,37 +1,37 @@
 const jwt = require("jsonwebtoken");
 
-const SECRET = process.env.JWT_SECRET || "dev_secret";
-
 module.exports = (req, res, next) => {
   try {
-    const auth = req.headers.authorization;
+    console.log("HEADER:", req.headers.authorization);
 
-    // 🔒 valida header
-    if (!auth) {
-      return res.status(401).json({ mensagem: "Token não enviado" });
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({
+        erro: "Token não enviado"
+      });
     }
 
-    const parts = auth.split(" ");
+    const token = authHeader.split(" ")[1];
 
-    // 🔒 valida formato Bearer
-    if (parts.length !== 2) {
-      return res.status(401).json({ mensagem: "Token mal formatado" });
-    }
+    console.log("TOKEN:", token);
 
-    const [scheme, token] = parts;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "segredo_super_forte"
+    );
 
-    if (!/^Bearer$/i.test(scheme)) {
-      return res.status(401).json({ mensagem: "Formato inválido" });
-    }
-
-    // 🔐 valida token
-    const decoded = jwt.verify(token, SECRET);
+    console.log("TOKEN DECODIFICADO:", decoded);
 
     req.user = decoded;
 
-    return next();
+    next();
 
   } catch (err) {
-    return res.status(401).json({ mensagem: "Token inválido ou expirado" });
+    console.log("ERRO AUTH:", err.message);
+
+    return res.status(401).json({
+      erro: err.message
+    });
   }
 };
