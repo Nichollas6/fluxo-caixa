@@ -1,4 +1,4 @@
-function gerarRecibo(venda) {
+function gerarRecibo(Vendas) {
   const win = window.open("", "_blank");
 
   win.document.write(`
