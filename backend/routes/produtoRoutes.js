@@ -62,9 +62,12 @@ router.post("/", auth, admin, async (req, res) => {
     res.json(produto);
 
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ erro: "Erro ao criar produto" });
-  }
+  console.log("ERRO REAL:", err);
+
+  res.status(500).json({
+    erro: err.message
+  });
+}
 });
 
 // ✏️ EDITAR (ADMIN)

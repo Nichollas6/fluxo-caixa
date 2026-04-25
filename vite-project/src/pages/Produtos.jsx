@@ -37,47 +37,54 @@ export default function Produtos() {
   }
 
   // 🔥 FUNÇÃO CORRIGIDA
-  async function salvar() {
-    console.log("CLICOU SALVAR 🔥");
+ async function salvar() {
+  console.log("CLICOU SALVAR 🔥");
 
-    try {
-      if (!nome) {
-        alert("Preencha o nome");
-        return;
-      }
-
-      if (editando) {
-        // ✏️ EDITAR
-        await axios.put(`${API}/produtos/${editando}`, {
-          nome,
-          preco: Number(preco),
-          custo: Number(custo),
-          estoque: Number(estoque)
-        });
-
-        alert("Produto atualizado 🔥");
-
-      } else {
-        // ➕ NOVO
-        await axios.post(`${API}/produtos`, {
-          nome,
-          preco: Number(preco),
-          custo: Number(custo),
-          estoque: Number(estoque)
-        });
-
-        alert("Produto criado 🔥");
-      }
-
-      limpar();
-      carregar();
-
-    } catch (err) {
-      console.log("ERRO:", err);
-      alert("Erro ao salvar");
+  try {
+    if (!nome.trim()) {
+      alert("Preencha o nome");
+      return;
     }
-  }
 
+    if (!preco || !custo) {
+      alert("Preencha preço e custo");
+      return;
+    }
+
+    const dados = {
+      nome: nome.trim(),
+      preco: Number(preco),
+      custo: Number(custo),
+      estoque: Number(estoque) || 0
+    };
+
+    if (editando) {
+      // editar produto
+      await axios.put(`${API}/produtos/${editando}`, dados);
+
+      alert("Produto atualizado com sucesso 🔥");
+    } else {
+      // criar produto
+      await axios.post(`${API}/produtos`, dados);
+
+      alert("Produto criado com sucesso 🔥");
+    }
+
+    limpar();
+    carregar();
+
+  } catch (err) {
+    console.log("ERRO REAL:", err);
+    console.log("RESPOSTA:", err.response?.data);
+
+    alert(
+      err.response?.data?.erro ||
+      err.response?.data ||
+      err.message ||
+      "Erro ao salvar produto"
+    );
+  }
+}
   async function excluir(id) {
     if (!confirm("Excluir produto?")) return;
 
