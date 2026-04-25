@@ -28,26 +28,27 @@ export default function Produtos() {
   }, []);
 
   async function carregar() {
-    try {
-      const res = await axios.get(`${API}/produtos`);
-      setProdutos(res.data);
-    } catch (err) {
-      console.log(err);
-    }
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await axios.get(`${API}/produtos`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    setProdutos(res.data);
+
+  } catch (err) {
+    console.log("Erro ao carregar produtos:", err);
   }
+}
 
   // 🔥 FUNÇÃO CORRIGIDA
  async function salvar() {
   console.log("CLICOU SALVAR 🔥");
 
   try {
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    if (!user?.token) {
-      alert("Faça login novamente");
-      return;
-    }
-
     if (!nome.trim()) {
       alert("Preencha o nome");
       return;
@@ -58,17 +59,19 @@ export default function Produtos() {
       return;
     }
 
+    const token = localStorage.getItem("token");
+
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+
     const dados = {
       nome: nome.trim(),
       preco: Number(preco),
       custo: Number(custo),
       estoque: Number(estoque) || 0
-    };
-
-    const config = {
-      headers: {
-        Authorization: `Bearer ${user.token}`
-      }
     };
 
     if (editando) {
@@ -79,7 +82,6 @@ export default function Produtos() {
       );
 
       alert("Produto atualizado 🔥");
-
     } else {
       await axios.post(
         `${API}/produtos`,
@@ -100,7 +102,6 @@ export default function Produtos() {
     alert(
       err.response?.data?.erro ||
       err.response?.data ||
-      err.message ||
       "Erro ao salvar produto"
     );
   }
@@ -109,11 +110,11 @@ export default function Produtos() {
   if (!confirm("Excluir produto?")) return;
 
   try {
-    const user = JSON.parse(localStorage.getItem("user"));
+    const token = localStorage.getItem("token");
 
     await axios.delete(`${API}/produtos/${id}`, {
       headers: {
-        Authorization: `Bearer ${user.token}`
+        Authorization: `Bearer ${token}`
       }
     });
 
@@ -122,7 +123,10 @@ export default function Produtos() {
 
   } catch (err) {
     console.log(err);
-    alert(err.response?.data?.erro || "Erro ao excluir");
+    alert(
+      err.response?.data?.erro ||
+      "Erro ao excluir"
+    );
   }
 }
 
