@@ -3,45 +3,78 @@ const router = express.Router();
 
 const Venda = require("../models/Venda");
 const Conta = require("../models/Conta");
-const Caixa = require("../models/Caixa");
 
 router.get("/", async (req, res) => {
   try {
+    const { mes } = req.query;
+
+    let filtroVendas = {};
+    let filtroContas = {};
+
+    if (mes) {
+      const ano = new Date().getFullYear();
+
+      const inicio = new Date(ano, mes - 1, 1);
+      const fim = new Date(ano, mes, 0, 23, 59, 59);
+
+      filtroVendas.data = {
+        $gte: inicio,
+        $lte: fim
+      };
+
+      filtroContas.dataPagamento = {
+        $gte: inicio,
+        $lte: fim
+      };
+    }
+
     // vendas
-    const vendas = await Venda.find();
-
-    const totalVendas = vendas.reduce(
-      (acc, item) => acc + Number(item.valor || 0),
-      0
-    );
-
-    const totalLucro = vendas.reduce(
-      (acc, item) => acc + Number(item.lucro || 0),
-      0
-    );
+    const vendas = await Venda.find(filtroVendas);
 
     // contas pagas = saídas
-    const contasPagas = await Conta.find({
+    const contas = await Conta.find({
+      ...filtroContas,
       pago: true
     });
 
-    const totalSaidas = contasPagas.reduce(
-      (acc, item) => acc + Number(item.valor || 0),
-      0
+    const resumo = {};
+
+    // entradas + lucro
+    vendas.forEach((v) => {
+      const dia = new Date(v.data).getDate();
+
+      if (!resumo[dia]) {
+        resumo[dia] = {
+          dia,
+          entrada: 0,
+          saida: 0,
+          lucro: 0
+        };
+      }
+
+      resumo[dia].entrada += Number(v.valor || 0);
+      resumo[dia].lucro += Number(v.lucro || 0);
+    });
+
+    // saídas
+    contas.forEach((c) => {
+      const dia = new Date(c.dataPagamento).getDate();
+
+      if (!resumo[dia]) {
+        resumo[dia] = {
+          dia,
+          entrada: 0,
+          saida: 0,
+          lucro: 0
+        };
+      }
+
+      resumo[dia].saida += Number(c.valor || 0);
+    });
+
+    res.json(
+      Object.values(resumo).sort((a, b) => a.dia - b.dia)
     );
-
-    // caixa aberto
-    const caixa = await Caixa.findOne({
-      status: "aberto"
-    });
-
-    res.json({
-      vendas: totalVendas,
-      lucro: totalLucro,
-      saidas: totalSaidas,
-      caixaAtual: caixa?.saldoAtual || 0,
-      contasPagas
-    });
 
   } catch (err) {
     console.log("ERRO DASHBOARD:", err);
