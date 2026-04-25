@@ -51,26 +51,42 @@ export default function Vendas() {
       ? produtoSelecionado.preco * Number(quantidade)
       : 0;
 
-  function gerarRecibo(venda) {
+ function gerarRecibo(venda) {
+  const produtoNome =
+    produtoSelecionado?.nome || "Produto não identificado";
+
+  const qtdVendida =
+    venda.quantidade || venda.qtd || quantidade;
+
+  const valorTotal =
+    venda.valor || venda.total || total;
+
+  const clienteNome =
+    venda.cliente || cliente || "Balcão";
+
   const win = window.open("", "_blank");
 
   win.document.write(`
     <html>
       <head>
-        <title>Recibo</title>
+        <title>Recibo MK Imports</title>
       </head>
 
-      <body style="font-family:Arial;text-align:center;padding:20px;">
+      <body style="
+        font-family: Arial;
+        text-align: center;
+        padding: 20px;
+      ">
 
-        <h2>MK IMPORTS</h2>
+        <h2>🧾 MK IMPORTS</h2>
 
-        <p>Cliente: ${venda.cliente || "Balcão"}</p>
-        <p>Produto: ${venda.produto}</p>
-        <p>Quantidade: ${venda.quantidade}</p>
+        <p>Cliente: ${clienteNome}</p>
+        <p>Produto: ${produtoNome}</p>
+        <p>Quantidade: ${qtdVendida}</p>
 
         <hr/>
 
-        <h3>Total: R$ ${Number(venda.valor).toFixed(2)}</h3>
+        <h3>Total: R$ ${Number(valorTotal).toFixed(2)}</h3>
 
         <p>Obrigado pela preferência 🙏</p>
 
