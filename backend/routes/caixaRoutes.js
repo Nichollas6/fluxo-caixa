@@ -2,66 +2,92 @@ const express = require("express");
 const router = express.Router();
 const Caixa = require("../models/Caixa");
 
+const auth = require("../middleware/auth");
 
-// 🔍 PEGAR CAIXA ATUAL (último e aberto)
-router.get("/", async (req, res) => {
+
+// ===============================
+// PEGAR CAIXA ABERTO DA LOJA
+// ===============================
+router.get("/", auth, async (req, res) => {
   try {
-    const caixa = await Caixa.findOne({ status: "aberto" });
+    const caixa = await Caixa.findOne({
+      lojaId: req.user.lojaId,
+      status: "aberto"
+    });
 
     return res.json({ caixa });
 
   } catch (err) {
-    return res.status(500).json({ erro: err.message });
+    return res.status(500).json({
+      erro: err.message
+    });
   }
 });
 
 
-// 🟢 ABRIR CAIXA
-router.post("/abrir", async (req, res) => {
+// ===============================
+// ABRIR CAIXA
+// ===============================
+router.post("/abrir", auth, async (req, res) => {
   try {
-    // 🔥 impede duplicado REAL
-    const caixaAberto = await Caixa.findOne({ status: "aberto" });
+    const caixaAberto = await Caixa.findOne({
+      lojaId: req.user.lojaId,
+      status: "aberto"
+    });
 
     if (caixaAberto) {
       return res.status(400).json({
-        erro: "Já existe um caixa aberto",
+        erro: "Já existe um caixa aberto nesta loja"
       });
     }
 
     const caixa = await Caixa.create({
-      abertoPor: req.body.abertoPor || req.body.usuario || "Admin",
-      saldoInicial: Number(req.body.saldoInicial || 0),
+      lojaId: req.user.lojaId,
+      abertoPor:
+        req.body.abertoPor ||
+        req.user.nome ||
+        "Admin",
+
+      saldoInicial: Number(
+        req.body.saldoInicial || 0
+      ),
+
       entradas: 0,
       saidas: 0,
       totalVendas: 0,
       lucro: 0,
       status: "aberto",
-      dataAbertura: new Date(),
+      dataAbertura: new Date()
     });
 
     return res.json({
       mensagem: "Caixa aberto com sucesso",
-      caixa,
+      caixa
     });
 
   } catch (err) {
-    console.log("ERRO CAIXA ABRIR:", err);
+    console.log("ERRO ABRIR CAIXA:", err);
 
     return res.status(500).json({
-      erro: err.message,
+      erro: err.message
     });
   }
 });
 
 
-// 🔴 FECHAR CAIXA
-router.post("/fechar", async (req, res) => {
+// ===============================
+// FECHAR CAIXA
+// ===============================
+router.post("/fechar", auth, async (req, res) => {
   try {
-    const caixa = await Caixa.findOne({ status: "aberto" });
+    const caixa = await Caixa.findOne({
+      lojaId: req.user.lojaId,
+      status: "aberto"
+    });
 
     if (!caixa) {
       return res.status(400).json({
-        erro: "Nenhum caixa aberto",
+        erro: "Nenhum caixa aberto"
       });
     }
 
@@ -72,15 +98,14 @@ router.post("/fechar", async (req, res) => {
 
     return res.json({
       mensagem: "Caixa fechado com sucesso",
-      caixa,
+      caixa
     });
 
   } catch (err) {
     return res.status(500).json({
-      erro: err.message,
+      erro: err.message
     });
   }
 });
-
 
 module.exports = router;

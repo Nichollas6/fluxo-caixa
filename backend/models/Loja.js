@@ -8,13 +8,36 @@ const LojaSchema = new mongoose.Schema(
       trim: true
     },
 
-    documento: {
+    email: {
       type: String,
       required: true,
       unique: true,
       trim: true,
-      minlength: 11,
-      maxlength: 14
+      lowercase: true
+    },
+
+    telefone: {
+      type: String,
+      default: ""
+    },
+
+    documento: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true
+    },
+
+    plano: {
+      type: String,
+      enum: ["free", "premium"],
+      default: "free"
+    },
+
+    status: {
+      type: String,
+      enum: ["ativo", "bloqueado"],
+      default: "ativo"
     }
   },
   {
@@ -22,9 +45,8 @@ const LojaSchema = new mongoose.Schema(
   }
 );
 
-
 // normaliza CPF/CNPJ
-LojaSchema.pre("save", async function () {
+LojaSchema.pre("save", function (next) {
   if (this.documento) {
     this.documento = this.documento.replace(/\D/g, "");
 
@@ -32,11 +54,12 @@ LojaSchema.pre("save", async function () {
       this.documento.length < 11 ||
       this.documento.length > 14
     ) {
-      throw new Error("Documento inválido");
+      return next(new Error("Documento inválido"));
     }
   }
-});
 
+  next();
+});
 
 module.exports =
   mongoose.models.Loja ||

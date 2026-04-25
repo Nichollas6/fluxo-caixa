@@ -1,10 +1,12 @@
 const express = require("express");
 const router = express.Router();
+
 const Usuario = require("../models/Usuario");
 const Loja = require("../models/Loja");
 const jwt = require("jsonwebtoken");
 
-const SECRET = process.env.JWT_SECRET || "segredo_super_forte";
+const SECRET =
+  process.env.JWT_SECRET || "segredo_super_forte";
 
 
 // LOGIN
@@ -12,7 +14,7 @@ router.post("/", async (req, res) => {
   try {
     let { email, senha } = req.body;
 
-    // limpar dados
+    // normaliza
     email = email?.trim().toLowerCase();
     senha = senha?.trim();
 
@@ -22,7 +24,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // busca usuário + senha
+    // busca usuário
     const user = await Usuario
       .findOne({ email })
       .select("+senha");
@@ -40,8 +42,9 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // validar senha
-    const senhaValida = await user.compararSenha(senha);
+    // valida senha
+    const senhaValida =
+      await user.compararSenha(senha);
 
     if (!senhaValida) {
       return res.status(401).json({
@@ -49,10 +52,18 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // buscar loja vinculada
-    const loja = await Loja.findById(user.lojaId);
+    // busca loja vinculada
+    const loja = await Loja.findById(
+      user.lojaId
+    );
 
-    // gerar token
+    if (!loja) {
+      return res.status(404).json({
+        erro: "Loja não encontrada"
+      });
+    }
+
+    // token
     const token = jwt.sign(
       {
         id: user._id,
@@ -65,23 +76,31 @@ router.post("/", async (req, res) => {
       }
     );
 
-    // resposta
+    // retorno
     res.json({
       token,
       user: {
         _id: user._id,
-        nome: loja?.nome || "Minha Loja", // 🔥 aqui resolve
+        nome: user.nome || "",
         email: user.email,
         tipo: user.tipo,
-        lojaId: user.lojaId
+
+        loja: {
+          id: loja._id,
+          nome: loja.nome,
+          documento: loja.documento
+        }
       }
     });
 
   } catch (err) {
-    console.log("Erro no login:", err);
+    console.log(
+      "ERRO LOGIN:",
+      err
+    );
 
     res.status(500).json({
-      erro: err.message
+      erro: "Erro interno no login"
     });
   }
 });

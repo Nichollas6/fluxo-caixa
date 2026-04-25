@@ -1,6 +1,12 @@
 const mongoose = require("mongoose");
 
 const ClienteSchema = new mongoose.Schema({
+  lojaId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Loja",
+    required: true
+  },
+
   nome: {
     type: String,
     required: true,
@@ -13,7 +19,7 @@ const ClienteSchema = new mongoose.Schema({
     default: ""
   },
 
-  // 📊 CRM
+  // CRM
   totalCompras: {
     type: Number,
     default: 0
@@ -29,11 +35,12 @@ const ClienteSchema = new mongoose.Schema({
     default: null
   },
 
-  // 🕒 controle
   criadoEm: {
     type: Date,
     default: Date.now
   }
 });
 
-module.exports = mongoose.model("Cliente", ClienteSchema);
+module.exports =
+  mongoose.models.Cliente ||
+  mongoose.model("Cliente", ClienteSchema);

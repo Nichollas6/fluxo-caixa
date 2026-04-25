@@ -6,8 +6,7 @@ const ProdutoSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      lowercase: true,
-      unique: true
+      lowercase: true
     },
 
     preco: {
@@ -36,16 +35,38 @@ const ProdutoSchema = new mongoose.Schema(
     ativo: {
       type: Boolean,
       default: true
+    },
+
+    // vínculo da loja
+    lojaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Loja",
+      required: true
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
-// virtual lucro
+// lucro automático
 ProdutoSchema.virtual("lucroUnitario").get(function () {
   return this.preco - this.custo;
 });
 
-module.exports = mongoose.model("Produto", ProdutoSchema);
+// evita duplicar nome apenas dentro da mesma loja
+ProdutoSchema.index(
+  {
+    nome: 1,
+    lojaId: 1
+  },
+  {
+    unique: true
+  }
+);
+
+module.exports =
+  mongoose.models.Produto ||
+  mongoose.model("Produto", ProdutoSchema);

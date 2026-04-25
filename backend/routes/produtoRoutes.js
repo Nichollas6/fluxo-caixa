@@ -2,17 +2,17 @@ const express = require("express");
 const router = express.Router();
 const Produto = require("../models/Produto");
 
-// middlewares
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 
 
 // ===============================
-// LISTAR PRODUTOS
+// LISTAR PRODUTOS DA LOJA LOGADA
 // ===============================
 router.get("/", auth, async (req, res) => {
   try {
     const produtos = await Produto.find({
+      lojaId: req.user.lojaId,
       ativo: true
     }).sort({ createdAt: -1 });
 
@@ -37,9 +37,6 @@ router.post("/", auth, admin, async (req, res) => {
 
     nome = nome?.trim().toLowerCase();
 
-    console.log("BODY RECEBIDO:", req.body);
-    console.log("USUÁRIO:", req.user);
-
     if (!nome) {
       return res.status(400).json({
         erro: "Nome obrigatório"
@@ -52,23 +49,14 @@ router.post("/", auth, admin, async (req, res) => {
       });
     }
 
-    if (Number(preco) < 0 || Number(custo) < 0) {
-      return res.status(400).json({
-        erro: "Preço/custo inválido"
-      });
-    }
-
-    if (Number(estoque) < 0) {
-      return res.status(400).json({
-        erro: "Estoque inválido"
-      });
-    }
-
-    const existe = await Produto.findOne({ nome });
+    const existe = await Produto.findOne({
+      nome,
+      lojaId: req.user.lojaId
+    });
 
     if (existe) {
       return res.status(400).json({
-        erro: "Produto já cadastrado"
+        erro: "Produto já cadastrado nesta loja"
       });
     }
 
@@ -78,19 +66,14 @@ router.post("/", auth, admin, async (req, res) => {
       custo: Number(custo),
       estoque: Number(estoque) || 0,
       categoria: categoria || "geral",
-      ativo: true
+      ativo: true,
+      lojaId: req.user.lojaId
     });
 
     res.status(201).json(produto);
 
   } catch (err) {
     console.log("ERRO CRIAR PRODUTO:", err);
-
-    if (err.code === 11000) {
-      return res.status(400).json({
-        erro: "Produto duplicado"
-      });
-    }
 
     res.status(500).json({
       erro: err.message
@@ -104,7 +87,10 @@ router.post("/", auth, admin, async (req, res) => {
 // ===============================
 router.put("/:id", auth, admin, async (req, res) => {
   try {
-    const produto = await Produto.findById(req.params.id);
+    const produto = await Produto.findOne({
+      _id: req.params.id,
+      lojaId: req.user.lojaId
+    });
 
     if (!produto) {
       return res.status(404).json({
@@ -112,7 +98,7 @@ router.put("/:id", auth, admin, async (req, res) => {
       });
     }
 
-    let {
+    const {
       nome,
       preco,
       custo,
@@ -164,7 +150,10 @@ router.put("/:id", auth, admin, async (req, res) => {
 // ===============================
 router.delete("/:id", auth, admin, async (req, res) => {
   try {
-    const produto = await Produto.findById(req.params.id);
+    const produto = await Produto.findOne({
+      _id: req.params.id,
+      lojaId: req.user.lojaId
+    });
 
     if (!produto) {
       return res.status(404).json({
@@ -197,7 +186,10 @@ router.put("/:id/estoque", auth, async (req, res) => {
   try {
     const { quantidade } = req.body;
 
-    const produto = await Produto.findById(req.params.id);
+    const produto = await Produto.findOne({
+      _id: req.params.id,
+      lojaId: req.user.lojaId
+    });
 
     if (!produto) {
       return res.status(404).json({

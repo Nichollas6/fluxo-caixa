@@ -1,41 +1,61 @@
 const mongoose = require("mongoose");
 
-const VendaSchema = new mongoose.Schema({
-  produto: {
-    type: String,
-    required: true
-  },
+const VendaSchema = new mongoose.Schema(
+  {
+    lojaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Loja",
+      required: true
+    },
 
-  cliente: {
-    type: String,
-    default: "Balcão"
-  },
+    produto: {
+      type: String,
+      required: true,
+      trim: true
+    },
 
-  vendedor: {
-    type: String,
-    default: "Sistema"
-  },
+    cliente: {
+      type: String,
+      default: "Balcão",
+      trim: true
+    },
 
-  quantidade: {
-    type: Number,
-    required: true
-  },
+    vendedor: {
+      type: String,
+      default: "Sistema",
+      trim: true
+    },
 
-  valor: {
-    type: Number,
-    required: true
-  },
+    quantidade: {
+      type: Number,
+      required: true,
+      min: 1
+    },
 
-  lucro: {
-    type: Number,
-    required: true
-  },
+    valor: {
+      type: Number,
+      required: true,
+      min: 0
+    },
 
-  data: {
-    type: Date,
-    default: Date.now
+    lucro: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+
+    data: {
+      type: Date,
+      default: Date.now
+    }
+  },
+  {
+    timestamps: true
   }
+);
 
-}, { timestamps: true });
 
-module.exports = mongoose.model("Venda", VendaSchema);
+// evita erro no Render / hot reload
+module.exports =
+  mongoose.models.Venda ||
+  mongoose.model("Venda", VendaSchema);

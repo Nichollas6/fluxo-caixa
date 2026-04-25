@@ -3,45 +3,66 @@ const router = express.Router();
 
 const Venda = require("../models/Venda");
 const Conta = require("../models/Conta");
+const auth = require("../middleware/auth");
 
-router.get("/", async (req, res) => {
+
+// ================================
+// DASHBOARD MULTI LOJA
+// ================================
+router.get("/", auth, async (req, res) => {
   try {
     const { mes } = req.query;
 
-    let filtroVendas = {};
-    let filtroContas = {};
+    let filtroVendas = {
+      lojaId: req.user.lojaId
+    };
 
+    let filtroContas = {
+      lojaId: req.user.lojaId,
+      pago: true
+    };
+
+    // filtro por mês
     if (mes) {
-      const ano = new Date().getFullYear();
+      const anoAtual = new Date().getFullYear();
 
-      const inicio = new Date(ano, mes - 1, 1);
-      const fim = new Date(ano, mes, 0, 23, 59, 59);
+      const inicio = new Date(
+        anoAtual,
+        Number(mes) - 1,
+        1
+      );
+
+      const fim = new Date(
+        anoAtual,
+        Number(mes),
+        0,
+        23,
+        59,
+        59
+      );
 
       filtroVendas.data = {
         $gte: inicio,
         $lte: fim
       };
 
-      filtroContas.dataPagamento = {
+      filtroContas.data = {
         $gte: inicio,
         $lte: fim
       };
     }
 
-    // vendas
+    // buscar dados da loja
     const vendas = await Venda.find(filtroVendas);
-
-    // contas pagas = saídas
-    const contas = await Conta.find({
-      ...filtroContas,
-      pago: true
-    });
+    const contas = await Conta.find(filtroContas);
 
     const resumo = {};
 
-    // entradas + lucro
-    vendas.forEach((v) => {
-      const dia = new Date(v.data).getDate();
+    // =========================
+    // ENTRADAS (VENDAS)
+    // =========================
+    vendas.forEach((venda) => {
+      const dia = new Date(venda.data).getDate();
 
       if (!resumo[dia]) {
         resumo[dia] = {
@@ -52,13 +73,22 @@ router.get("/", async (req, res) => {
         };
       }
 
-      resumo[dia].entrada += Number(v.valor || 0);
-      resumo[dia].lucro += Number(v.lucro || 0);
+      resumo[dia].entrada += Number(
+        venda.valor || 0
+      );
+
+      resumo[dia].lucro += Number(
+        venda.lucro || 0
+      );
     });
 
-    // saídas
-    contas.forEach((c) => {
-      const dia = new Date(c.dataPagamento).getDate();
+    // =========================
+    // SAÍDAS (CONTAS PAGAS)
+    // =========================
+    contas.forEach((conta) => {
+      const dia = new Date(
+        conta.dataPagamento || conta.data
+      ).getDate();
 
       if (!resumo[dia]) {
         resumo[dia] = {
@@ -69,12 +99,43 @@ router.get("/", async (req, res) => {
         };
       }
 
-      resumo[dia].saida += Number(c.valor || 0);
+      resumo[dia].saida += Number(
+        conta.valor || 0
+      );
     });
 
-    res.json(
-      Object.values(resumo).sort((a, b) => a.dia - b.dia)
+    // ordenar por dia
+    const resultado = Object.values(resumo)
+      .sort((a, b) => a.dia - b.dia);
+
+    // totais gerais
+    const totalEntradas = vendas.reduce(
+      (acc, item) => acc + Number(item.valor || 0),
+      0
     );
+
+    const totalSaidas = contas.reduce(
+      (acc, item) => acc + Number(item.valor || 0),
+      0
+    );
+
+    const totalLucro = vendas.reduce(
+      (acc, item) => acc + Number(item.lucro || 0),
+      0
+    );
+
+    const saldoFinal =
+      totalEntradas - totalSaidas;
+
+    res.json({
+      grafico: resultado,
+      resumo: {
+        entradas: totalEntradas,
+        saidas: totalSaidas,
+        lucro: totalLucro,
+        saldo: saldoFinal
+      }
+    });
 
   } catch (err) {
     console.log("ERRO DASHBOARD:", err);
@@ -84,5 +145,6 @@ router.get("/", async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;

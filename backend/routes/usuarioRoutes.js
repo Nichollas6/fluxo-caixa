@@ -1,10 +1,15 @@
 const express = require("express");
 const router = express.Router();
-const Usuario = require("../models/Usuario");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const SECRET = process.env.JWT_SECRET || "dev_secret";
+const Usuario = require("../models/Usuario");
+
+const auth = require("../middleware/auth");
+const admin = require("../middleware/admin");
+
+const SECRET =
+  process.env.JWT_SECRET || "dev_secret";
 
 
 // ============================
@@ -19,12 +24,13 @@ router.post("/login", async (req, res) => {
 
     if (!email || !senha) {
       return res.status(400).json({
-        erro: "Preencha os campos"
+        erro: "Preencha todos os campos"
       });
     }
 
-    const user = await Usuario.findOne({ email })
-      .select("+senha");
+    const user = await Usuario.findOne({
+      email
+    }).select("+senha");
 
     if (!user) {
       return res.status(401).json({
@@ -38,10 +44,11 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const senhaValida = await bcrypt.compare(
-      senha,
-      user.senha
-    );
+    const senhaValida =
+      await bcrypt.compare(
+        senha,
+        user.senha
+      );
 
     if (!senhaValida) {
       return res.status(401).json({
@@ -56,7 +63,9 @@ router.post("/login", async (req, res) => {
         lojaId: user.lojaId
       },
       SECRET,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d"
+      }
     );
 
     res.json({
@@ -80,45 +89,50 @@ router.post("/login", async (req, res) => {
 
 
 // ============================
-// CRIAR USUÁRIO
+// CRIAR USUÁRIO DA MESMA LOJA
+// Apenas admin
 // ============================
-router.post("/", async (req, res) => {
+router.post("/", auth, admin, async (req, res) => {
   try {
     let {
       email,
       senha,
-      tipo,
-      lojaId
+      tipo
     } = req.body;
 
     email = email?.trim().toLowerCase();
 
-    if (!email || !senha || !lojaId) {
+    if (!email || !senha) {
       return res.status(400).json({
         erro: "Preencha todos os campos"
       });
     }
 
-    const existe = await Usuario.findOne({ email });
+    const existe = await Usuario.findOne({
+      email
+    });
 
     if (existe) {
       return res.status(400).json({
-        erro: "Usuário já existe"
+        erro: "Email já cadastrado"
       });
     }
 
-    const novo = await Usuario.create({
-      email,
-      senha,
-      tipo: tipo || "vendedor",
-      lojaId
-    });
+    const novoUsuario =
+      await Usuario.create({
+        email,
+        senha,
+        tipo: tipo || "vendedor",
 
-    res.json({
-      _id: novo._id,
-      email: novo.email,
-      tipo: novo.tipo,
-      lojaId: novo.lojaId
+        // loja automática do admin logado
+        lojaId: req.user.lojaId
+      });
+
+    res.status(201).json({
+      _id: novoUsuario._id,
+      email: novoUsuario.email,
+      tipo: novoUsuario.tipo,
+      lojaId: novoUsuario.lojaId
     });
 
   } catch (err) {
@@ -132,13 +146,14 @@ router.post("/", async (req, res) => {
 
 
 // ============================
-// LISTAR USUÁRIOS DA LOJA
+// LISTAR USUÁRIOS DA PRÓPRIA LOJA
 // ============================
-router.get("/:lojaId", async (req, res) => {
+router.get("/", auth, async (req, res) => {
   try {
-    const usuarios = await Usuario.find({
-      lojaId: req.params.lojaId
-    });
+    const usuarios =
+      await Usuario.find({
+        lojaId: req.user.lojaId
+      }).select("-senha");
 
     res.json(usuarios);
 
@@ -147,6 +162,42 @@ router.get("/:lojaId", async (req, res) => {
 
     res.status(500).json({
       erro: "Erro ao buscar usuários"
+    });
+  }
+});
+
+
+// ============================
+// DESATIVAR USUÁRIO
+// ============================
+router.put("/:id/desativar", auth, admin, async (req, res) => {
+  try {
+    const usuario =
+      await Usuario.findOne({
+        _id: req.params.id,
+        lojaId: req.user.lojaId
+      });
+
+    if (!usuario) {
+      return res.status(404).json({
+        erro: "Usuário não encontrado"
+      });
+    }
+
+    usuario.ativo = false;
+
+    await usuario.save();
+
+    res.json({
+      mensagem:
+        "Usuário desativado com sucesso"
+    });
+
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      erro: "Erro ao desativar usuário"
     });
   }
 });

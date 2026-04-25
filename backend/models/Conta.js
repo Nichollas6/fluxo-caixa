@@ -1,43 +1,56 @@
 const mongoose = require("mongoose");
 
-const ContaSchema = new mongoose.Schema({
-  descricao: {
-    type: String,
-    required: true,
-    trim: true
-  },
+const ContaSchema = new mongoose.Schema(
+  {
+    lojaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Loja",
+      required: true
+    },
 
-  valor: {
-    type: Number,
-    required: true
-  },
+    descricao: {
+      type: String,
+      required: true,
+      trim: true
+    },
 
-  tipo: {
-    type: String,
-    enum: ["saida", "entrada"],
-    default: "saida"
-  },
+    valor: {
+      type: Number,
+      required: true,
+      min: 0
+    },
 
-  pago: {
-    type: Boolean,
-    default: false
-  },
+    tipo: {
+      type: String,
+      enum: ["saida", "entrada"],
+      default: "saida"
+    },
 
-  data: {
-    type: Date,
-    default: Date.now
-  },
+    pago: {
+      type: Boolean,
+      default: false
+    },
 
-  dataPagamento: {
-    type: Date,
-    default: null
-  },
+    data: {
+      type: Date,
+      default: Date.now
+    },
 
-  categoria: {
-    type: String,
-    default: "geral"
+    dataPagamento: {
+      type: Date,
+      default: null
+    },
+
+    categoria: {
+      type: String,
+      default: "geral"
+    }
+  },
+  {
+    timestamps: true
   }
+);
 
-});
-
-module.exports = mongoose.model("Conta", ContaSchema);
+module.exports =
+  mongoose.models.Conta ||
+  mongoose.model("Conta", ContaSchema);

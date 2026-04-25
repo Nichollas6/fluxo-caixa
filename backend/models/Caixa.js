@@ -2,80 +2,99 @@ const mongoose = require("mongoose");
 
 const CaixaSchema = new mongoose.Schema(
   {
+    lojaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Loja",
+      required: true
+    },
+
     abertoPor: {
       type: String,
       required: true,
-      trim: true,
+      trim: true
     },
 
     status: {
       type: String,
       enum: ["aberto", "fechado"],
-      default: "aberto",
+      default: "aberto"
     },
 
     saldoInicial: {
       type: Number,
       required: true,
-      min: 0,
+      min: 0
     },
 
     saldoAtual: {
       type: Number,
       default: 0,
-      min: 0,
+      min: 0
     },
 
     entradas: {
       type: Number,
       default: 0,
-      min: 0,
+      min: 0
     },
 
     saidas: {
       type: Number,
       default: 0,
-      min: 0,
+      min: 0
     },
 
     totalVendas: {
       type: Number,
       default: 0,
-      min: 0,
+      min: 0
     },
 
     lucro: {
       type: Number,
-      default: 0,
+      default: 0
     },
 
     dataAbertura: {
       type: Date,
-      default: Date.now,
+      default: Date.now
     },
 
     dataFechamento: {
       type: Date,
-      default: null,
-    },
+      default: null
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
 
-// 🔥 GARANTE APENAS 1 CAIXA ABERTO
+
+// apenas 1 caixa aberto POR LOJA
 CaixaSchema.index(
-  { status: 1 },
-  { unique: true, partialFilterExpression: { status: { $eq: "aberto" } } }
+  {
+    lojaId: 1,
+    status: 1
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $eq: "aberto" }
+    }
+  }
 );
 
-// 🔥 ATUALIZA SALDO AUTOMATICAMENTE (CORRIGIDO)
+
+// atualiza saldo automático
 CaixaSchema.pre("save", function () {
   this.saldoAtual =
-    this.saldoInicial + this.entradas - this.saidas;
+    this.saldoInicial +
+    this.entradas -
+    this.saidas;
 });
 
-// 🔥 EVITA DUPLICAÇÃO DO MODEL
+
 module.exports =
-  mongoose.models.Caixa || mongoose.model("Caixa", CaixaSchema);
+  mongoose.models.Caixa ||
+  mongoose.model("Caixa", CaixaSchema);

@@ -4,37 +4,58 @@ const router = express.Router();
 const Cliente = require("../models/Cliente");
 const Venda = require("../models/Venda");
 
+const auth = require("../middleware/auth");
 
-// 🔍 LISTAR CLIENTES (ORDENADO POR VALOR)
-router.get("/", async (req, res) => {
+
+// ============================
+// LISTAR CLIENTES
+// ============================
+router.get("/", auth, async (req, res) => {
   try {
-    const clientes = await Cliente.find()
-      .sort({ totalGasto: -1 });
+    const clientes = await Cliente.find({
+      lojaId: req.user.lojaId
+    }).sort({ totalGasto: -1 });
 
     res.json(clientes);
+
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ao buscar clientes");
+
+    res.status(500).json({
+      erro: "Erro ao buscar clientes"
+    });
   }
 });
 
 
-// ➕ CRIAR CLIENTE
-router.post("/", async (req, res) => {
+// ============================
+// CRIAR CLIENTE
+// ============================
+router.post("/", auth, async (req, res) => {
   try {
-    const { nome, telefone } = req.body;
+    let { nome, telefone } = req.body;
+
+    nome = nome?.trim();
 
     if (!nome) {
-      return res.status(400).json("Nome obrigatório");
+      return res.status(400).json({
+        erro: "Nome obrigatório"
+      });
     }
 
-    const existe = await Cliente.findOne({ nome });
+    const existe = await Cliente.findOne({
+      nome,
+      lojaId: req.user.lojaId
+    });
 
     if (existe) {
-      return res.status(400).json("Cliente já existe");
+      return res.status(400).json({
+        erro: "Cliente já existe"
+      });
     }
 
     const cliente = await Cliente.create({
+      lojaId: req.user.lojaId,
       nome,
       telefone
     });
@@ -43,74 +64,128 @@ router.post("/", async (req, res) => {
 
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ao criar cliente");
+
+    res.status(500).json({
+      erro: "Erro ao criar cliente"
+    });
   }
 });
 
 
-// 📋 HISTÓRICO DO CLIENTE
-router.get("/:id/historico", async (req, res) => {
+// ============================
+// HISTÓRICO DO CLIENTE
+// ============================
+router.get("/:id/historico", auth, async (req, res) => {
   try {
-    const cliente = await Cliente.findById(req.params.id);
+    const cliente = await Cliente.findOne({
+      _id: req.params.id,
+      lojaId: req.user.lojaId
+    });
 
     if (!cliente) {
-      return res.status(404).json("Cliente não encontrado");
+      return res.status(404).json({
+        erro: "Cliente não encontrado"
+      });
     }
 
     const vendas = await Venda.find({
-      cliente: cliente.nome
+      cliente: cliente.nome,
+      lojaId: req.user.lojaId
     }).sort({ data: -1 });
 
     res.json(vendas);
 
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ao buscar histórico");
+
+    res.status(500).json({
+      erro: "Erro ao buscar histórico"
+    });
   }
 });
 
 
-// ✏️ EDITAR
-router.put("/:id", async (req, res) => {
+// ============================
+// EDITAR CLIENTE
+// ============================
+router.put("/:id", auth, async (req, res) => {
   try {
-    const cliente = await Cliente.findByIdAndUpdate(
-      req.params.id,
+    const cliente = await Cliente.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        lojaId: req.user.lojaId
+      },
       req.body,
       { new: true }
     );
+
+    if (!cliente) {
+      return res.status(404).json({
+        erro: "Cliente não encontrado"
+      });
+    }
 
     res.json(cliente);
 
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ao atualizar");
+
+    res.status(500).json({
+      erro: "Erro ao atualizar cliente"
+    });
   }
 });
 
 
-// ❌ EXCLUIR
-router.delete("/:id", async (req, res) => {
+// ============================
+// EXCLUIR CLIENTE
+// ============================
+router.delete("/:id", auth, async (req, res) => {
   try {
-    await Cliente.findByIdAndDelete(req.params.id);
-    res.json({ ok: true });
+    const cliente = await Cliente.findOneAndDelete({
+      _id: req.params.id,
+      lojaId: req.user.lojaId
+    });
+
+    if (!cliente) {
+      return res.status(404).json({
+        erro: "Cliente não encontrado"
+      });
+    }
+
+    res.json({
+      mensagem: "Cliente removido com sucesso"
+    });
+
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ao excluir");
+
+    res.status(500).json({
+      erro: "Erro ao excluir cliente"
+    });
   }
 });
 
 
-// 🏆 TOP CLIENTES (RANKING)
-router.get("/ranking/top", async (req, res) => {
+// ============================
+// TOP CLIENTES
+// ============================
+router.get("/ranking/top", auth, async (req, res) => {
   try {
-    const top = await Cliente.find()
+    const top = await Cliente.find({
+      lojaId: req.user.lojaId
+    })
       .sort({ totalGasto: -1 })
       .limit(5);
 
     res.json(top);
+
   } catch (err) {
     console.log(err);
-    res.status(500).json("Erro ranking");
+
+    res.status(500).json({
+      erro: "Erro ao buscar ranking"
+    });
   }
 });
 
