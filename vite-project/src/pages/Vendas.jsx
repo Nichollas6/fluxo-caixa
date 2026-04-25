@@ -51,7 +51,7 @@ export default function Vendas() {
       ? produtoSelecionado.preco * Number(quantidade)
       : 0;
 
-  function gerarRecibo(venda) {
+  function gerarRecibo(vendas) {
     const win = window.open("", "_blank");
 
     win.document.write(`
@@ -107,9 +107,7 @@ export default function Vendas() {
         }
       };
 
-      const res = await axios.post(
-        `${API}/vendas`,
-        {
+      const res = await axios.post(`${API}/vendas`, {
           produtoId,
           qtd: Number(quantidade),
           cliente,
