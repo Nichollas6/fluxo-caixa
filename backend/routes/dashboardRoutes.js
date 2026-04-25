@@ -2,46 +2,53 @@ const express = require("express");
 const router = express.Router();
 
 const Venda = require("../models/Venda");
+const Conta = require("../models/Conta");
+const Caixa = require("../models/Caixa");
 
 router.get("/", async (req, res) => {
   try {
-    const { mes } = req.query;
+    // vendas
+    const vendas = await Venda.find();
 
-    let filtro = {};
+    const totalVendas = vendas.reduce(
+      (acc, item) => acc + Number(item.valor || 0),
+      0
+    );
 
-    if (mes) {
-      const ano = new Date().getFullYear();
+    const totalLucro = vendas.reduce(
+      (acc, item) => acc + Number(item.lucro || 0),
+      0
+    );
 
-      const inicio = new Date(ano, mes - 1, 1);
-      const fim = new Date(ano, mes, 0, 23, 59, 59);
-
-      filtro.data = { $gte: inicio, $lte: fim };
-    }
-
-    const vendas = await Venda.find(filtro);
-
-    const resumo = {};
-
-    vendas.forEach((v) => {
-      const dia = new Date(v.data).getDate();
-
-      if (!resumo[dia]) {
-        resumo[dia] = {
-          dia,
-          entrada: 0,
-          lucro: 0
-        };
-      }
-
-      resumo[dia].entrada += Number(v.valor || 0);
-      resumo[dia].lucro += Number(v.lucro || 0);
+    // contas pagas = saídas
+    const contasPagas = await Conta.find({
+      pago: true
     });
 
-    res.json(Object.values(resumo));
+    const totalSaidas = contasPagas.reduce(
+      (acc, item) => acc + Number(item.valor || 0),
+      0
+    );
+
+    // caixa aberto
+    const caixa = await Caixa.findOne({
+      status: "aberto"
+    });
+
+    res.json({
+      vendas: totalVendas,
+      lucro: totalLucro,
+      saidas: totalSaidas,
+      caixaAtual: caixa?.saldoAtual || 0,
+      contasPagas
+    });
 
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Erro ao carregar dashboard" });
+    console.log("ERRO DASHBOARD:", err);
+
+    res.status(500).json({
+      erro: "Erro ao carregar dashboard"
+    });
   }
 });
 
