@@ -15,7 +15,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("🔥 Mongo conectado"))
   .catch(err => console.log("❌ Erro Mongo:", err));
 
-// 🧪 ROTA TESTE (pra saber se backend tá online)
+// 🧪 TESTE API
 app.get("/", (req, res) => {
   res.send("API rodando 🚀");
 });
@@ -24,10 +24,10 @@ app.get("/", (req, res) => {
 // 📦 ROTAS
 // =========================
 
-// 🔑 AUTH
+// 🔑 LOGIN
 app.use("/login", require("./routes/loginRoutes"));
 
-// 🏪 LOJA (🔥 PADRONIZADO AQUI)
+// 🏪 LOJA
 app.use("/loja", require("./routes/lojaRoutes"));
 
 // 👤 USUÁRIOS
@@ -42,7 +42,10 @@ app.use("/clientes", require("./routes/clienteRoutes"));
 // 💰 VENDAS
 app.use("/vendas", require("./routes/vendaRoutes"));
 
-// 🧾 CAIXA
+// 🧾 RECIBO ← ADICIONADO
+app.use("/recibo", require("./routes/reciboRoutes"));
+
+// 💵 CAIXA
 app.use("/caixa", require("./routes/caixaRoutes"));
 
 // 📊 DASHBOARD
