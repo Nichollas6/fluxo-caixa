@@ -51,36 +51,39 @@ export default function Vendas() {
       ? produtoSelecionado.preco * Number(quantidade)
       : 0;
 
-  function gerarRecibo(vendas) {
-    const win = window.open("", "_blank");
+  function gerarRecibo(venda) {
+  const win = window.open("", "_blank");
 
-    win.document.write(`
-      <html>
-        <head>
-          <title>Recibo</title>
-        </head>
-        <body style="font-family:Arial;text-align:center;padding:20px;">
-          
-          <h2>MK IMPORTS</h2>
+  win.document.write(`
+    <html>
+      <head>
+        <title>Recibo</title>
+      </head>
 
-          <p>Cliente: ${venda.cliente || "Balcão"}</p>
-          <p>Produto: ${venda.produto}</p>
-          <p>Quantidade: ${venda.quantidade}</p>
+      <body style="font-family:Arial;text-align:center;padding:20px;">
 
-          <hr/>
+        <h2>MK IMPORTS</h2>
 
-          <h3>Total: R$ ${venda.valor}</h3>
+        <p>Cliente: ${venda.cliente || "Balcão"}</p>
+        <p>Produto: ${venda.produto}</p>
+        <p>Quantidade: ${venda.quantidade}</p>
 
-          <p>Obrigado pela preferência</p>
+        <hr/>
 
-          <script>
-            window.print()
-          </script>
+        <h3>Total: R$ ${Number(venda.valor).toFixed(2)}</h3>
 
-        </body>
-      </html>
-    `);
-  }
+        <p>Obrigado pela preferência 🙏</p>
+
+        <script>
+          window.print();
+        </script>
+
+      </body>
+    </html>
+  `);
+
+  win.document.close();
+}
 
   async function vender() {
     try {
