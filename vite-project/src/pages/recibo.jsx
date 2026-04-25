@@ -1,12 +1,12 @@
-function gerarRecibo(venda) {
+function gerarRecibo(vendas) {
   const texto = `
 MK IMPORTS
 
-Cliente: ${venda.cliente}
-Produto: ${venda.produto}
-Qtd: ${venda.quantidade}
+Cliente: ${vendas.cliente}
+Produto: ${vendas.produto}
+Qtd: ${vendas.quantidade}
 
-Total: R$ ${venda.valor}
+Total: R$ ${vendas.valor}
   `;
 
   alert(texto);
