@@ -41,6 +41,13 @@ export default function Produtos() {
   console.log("CLICOU SALVAR 🔥");
 
   try {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!user?.token) {
+      alert("Faça login novamente");
+      return;
+    }
+
     if (!nome.trim()) {
       alert("Preencha o nome");
       return;
@@ -58,16 +65,29 @@ export default function Produtos() {
       estoque: Number(estoque) || 0
     };
 
+    const config = {
+      headers: {
+        Authorization: `Bearer ${user.token}`
+      }
+    };
+
     if (editando) {
-      // editar produto
-      await axios.put(`${API}/produtos/${editando}`, dados);
+      await axios.put(
+        `${API}/produtos/${editando}`,
+        dados,
+        config
+      );
 
-      alert("Produto atualizado com sucesso 🔥");
+      alert("Produto atualizado 🔥");
+
     } else {
-      // criar produto
-      await axios.post(`${API}/produtos`, dados);
+      await axios.post(
+        `${API}/produtos`,
+        dados,
+        config
+      );
 
-      alert("Produto criado com sucesso 🔥");
+      alert("Produto criado 🔥");
     }
 
     limpar();
@@ -85,12 +105,26 @@ export default function Produtos() {
     );
   }
 }
-  async function excluir(id) {
-    if (!confirm("Excluir produto?")) return;
+ async function excluir(id) {
+  if (!confirm("Excluir produto?")) return;
 
-    await axios.delete(`${API}/produtos/${id}`);
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    await axios.delete(`${API}/produtos/${id}`, {
+      headers: {
+        Authorization: `Bearer ${user.token}`
+      }
+    });
+
+    alert("Produto removido");
     carregar();
+
+  } catch (err) {
+    console.log(err);
+    alert(err.response?.data?.erro || "Erro ao excluir");
   }
+}
 
   function editar(p) {
     setEditando(p._id);
