@@ -12,10 +12,10 @@ export default function Vendas() {
   const API = "https://fluxo-caixa-back.onrender.com";
 
   useEffect(() => {
-    carregarDados();
+    carregar();
   }, []);
 
-  async function carregarDados() {
+  async function carregar() {
     try {
       const token = localStorage.getItem("token");
 
@@ -35,18 +35,11 @@ export default function Vendas() {
         config
       );
 
-      console.log("PRODUTOS:", resProd.data);
-
       setProdutos(resProd.data || []);
       setClientes(resCli.data || []);
 
     } catch (err) {
-      console.log("ERRO AO CARREGAR:", err.response?.data);
-
-      alert(
-        err.response?.data?.erro ||
-        "Erro ao carregar produtos/clientes"
-      );
+      console.log("ERRO AO CARREGAR:", err);
     }
   }
 
@@ -63,22 +56,27 @@ export default function Vendas() {
 
     win.document.write(`
       <html>
+        <head>
+          <title>Recibo</title>
+        </head>
         <body style="font-family:Arial;text-align:center;padding:20px;">
-          <h2>🧾 MK IMPORTS</h2>
+          
+          <h2>MK IMPORTS</h2>
 
           <p>Cliente: ${venda.cliente || "Balcão"}</p>
           <p>Produto: ${venda.produto}</p>
           <p>Quantidade: ${venda.quantidade}</p>
 
-          <hr>
+          <hr/>
 
           <h3>Total: R$ ${venda.valor}</h3>
 
-          <p>Obrigado pela preferência 🙏</p>
+          <p>Obrigado pela preferência</p>
 
           <script>
             window.print()
           </script>
+
         </body>
       </html>
     `);
@@ -86,27 +84,38 @@ export default function Vendas() {
 
   async function vender() {
     try {
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user"));
-
-      if (!produtoId || !quantidade) {
-        alert("Preencha os dados");
-        return;
+      if (!produtoId) {
+        return alert("Selecione um produto");
       }
 
+      if (!quantidade || Number(quantidade) <= 0) {
+        return alert("Quantidade inválida");
+      }
+
+      if (
+        produtoSelecionado &&
+        Number(quantidade) > produtoSelecionado.estoque
+      ) {
+        return alert("Estoque insuficiente");
+      }
+
+      const token = localStorage.getItem("token");
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      };
+
       const res = await axios.post(
-        `${API}/venda`,
+        `${API}/vendas`,
         {
           produtoId,
           qtd: Number(quantidade),
           cliente,
-          vendedor: user?.email || "Sistema"
+          vendedor: "Caixa"
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+        config
       );
 
       const venda = res.data;
@@ -117,7 +126,7 @@ export default function Vendas() {
 
       audio.play();
 
-      alert("Venda realizada com sucesso 🔥");
+      alert("Venda realizada com sucesso");
 
       gerarRecibo(venda);
 
@@ -125,15 +134,14 @@ export default function Vendas() {
       setCliente("");
       setQuantidade("");
 
-      carregarDados(); // atualiza estoque após venda
+      carregar();
 
     } catch (err) {
-      console.log("ERRO VENDA:", err.response?.data);
+      console.log("ERRO VENDA:", err.response?.data || err);
 
       alert(
         err.response?.data?.erro ||
-        err.response?.data ||
-        "Erro na venda"
+        "Erro ao realizar venda"
       );
     }
   }
@@ -145,30 +153,36 @@ export default function Vendas() {
         🛒 Nova Venda
       </h1>
 
-      <div className="bg-white p-6 rounded-2xl shadow max-w-2xl">
+      <div className="bg-white p-6 rounded shadow max-w-2xl">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
 
+          {/* PRODUTOS */}
           <select
             value={produtoId}
             onChange={(e) => setProdutoId(e.target.value)}
             className="border p-3 rounded"
           >
-            <option value="">Selecione o produto</option>
+            <option value="">
+              Selecione o produto
+            </option>
 
             {produtos.map((p) => (
               <option key={p._id} value={p._id}>
-                {p.nome} | Estoque: {p.estoque}
+                {p.nome}
               </option>
             ))}
           </select>
 
+          {/* CLIENTES */}
           <select
             value={cliente}
             onChange={(e) => setCliente(e.target.value)}
             className="border p-3 rounded"
           >
-            <option value="">Cliente (opcional)</option>
+            <option value="">
+              Cliente (opcional)
+            </option>
 
             {clientes.map((c) => (
               <option key={c._id} value={c.nome}>
@@ -177,32 +191,42 @@ export default function Vendas() {
             ))}
           </select>
 
+          {/* QUANTIDADE */}
           <input
             type="number"
             placeholder="Quantidade"
             value={quantidade}
-            onChange={(e) => setQuantidade(e.target.value)}
+            onChange={(e) =>
+              setQuantidade(e.target.value)
+            }
             className="border p-3 rounded md:col-span-2"
           />
 
         </div>
 
+        {/* INFO PRODUTO */}
         {produtoSelecionado && (
           <div className="mt-4 bg-gray-50 p-4 rounded">
-            <p>Preço: R$ {produtoSelecionado.preco}</p>
-            <p>Estoque: {produtoSelecionado.estoque}</p>
+            <p>
+              Preço: R$ {produtoSelecionado.preco}
+            </p>
+
+            <p>
+              Estoque: {produtoSelecionado.estoque}
+            </p>
           </div>
         )}
 
+        {/* TOTAL */}
         {total > 0 && (
-          <div className="mt-4 bg-green-50 p-4 rounded text-green-700 font-bold">
+          <div className="mt-4 bg-green-100 p-4 rounded font-bold text-green-700">
             Total: R$ {total.toFixed(2)}
           </div>
         )}
 
         <button
           onClick={vender}
-          className="mt-6 w-full bg-green-500 hover:bg-green-600 text-white p-4 rounded-xl font-bold"
+          className="w-full mt-6 bg-green-500 text-white p-4 rounded font-bold hover:bg-green-600"
         >
           💰 Finalizar Venda
         </button>
