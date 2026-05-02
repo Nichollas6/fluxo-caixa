@@ -4,27 +4,20 @@ const router = express.Router();
 
 const jwt = require("jsonwebtoken");
 
-const mongoose = require("mongoose");
-
 const Loja = require("../models/Loja");
 const Usuario = require("../models/Usuario");
 
 const SECRET =
   process.env.JWT_SECRET ||
-  "dev_secret";
+  "segredo_super_forte";
 
 
-// ===================================
-// CRIAR NOVA LOJA
-// ===================================
+// =========================
+// CRIAR LOJA
+// =========================
 router.post("/criar", async (req, res) => {
 
-  const session =
-    await mongoose.startSession();
-
   try {
-
-    session.startTransaction();
 
     let {
       nome,
@@ -43,50 +36,27 @@ router.post("/criar", async (req, res) => {
       !senha
     ) {
 
-      await session.abortTransaction();
-
       return res.status(400).json({
-        erro:
-          "Preencha todos os campos"
+        erro: "Preencha todos os campos"
       });
     }
 
     // =========================
-    // NORMALIZAÇÃO
+    // NORMALIZA
     // =========================
-    nome =
-      nome.trim();
+    nome = nome.trim();
 
     documento =
-      documento
-      .replace(/\D/g, "");
+      documento.replace(/\D/g, "");
 
     email =
-      email
-      .trim()
-      .toLowerCase();
+      email.trim().toLowerCase();
 
     senha =
       senha.trim();
 
     // =========================
-    // VALIDAR DOCUMENTO
-    // =========================
-    if (
-      documento.length < 11 ||
-      documento.length > 14
-    ) {
-
-      await session.abortTransaction();
-
-      return res.status(400).json({
-        erro:
-          "CPF/CNPJ inválido"
-      });
-    }
-
-    // =========================
-    // VERIFICAR LOJA
+    // VERIFICA LOJA
     // =========================
     const lojaExiste =
       await Loja.findOne({
@@ -95,16 +65,13 @@ router.post("/criar", async (req, res) => {
 
     if (lojaExiste) {
 
-      await session.abortTransaction();
-
       return res.status(400).json({
-        erro:
-          "CPF/CNPJ já cadastrado"
+        erro: "Documento já cadastrado"
       });
     }
 
     // =========================
-    // VERIFICAR EMAIL
+    // VERIFICA EMAIL
     // =========================
     const usuarioExiste =
       await Usuario.findOne({
@@ -113,87 +80,57 @@ router.post("/criar", async (req, res) => {
 
     if (usuarioExiste) {
 
-      await session.abortTransaction();
-
       return res.status(400).json({
-        erro:
-          "Email já cadastrado"
+        erro: "Email já cadastrado"
       });
     }
 
     // =========================
-    // CRIAR LOJA
+    // CRIA LOJA
     // =========================
     const loja =
-      await Loja.create(
-        [
-          {
-            nome,
+      await Loja.create({
 
-            documento,
+        nome,
 
-            email,
+        documento,
 
-            status: "ativo",
+        status: "ativo",
 
-            plano: "free"
-          }
-        ],
-        {
-          session
-        }
-      );
+        plano: "free"
+      });
 
     // =========================
-    // CRIAR ADMIN
+    // CRIA ADMIN
     // =========================
-    const admin =
-      await Usuario.create(
-        [
-          {
-            nome,
+    const usuario =
+      await Usuario.create({
 
-            email,
+        nome,
 
-            senha,
+        email,
 
-            tipo: "admin",
+        senha,
 
-            lojaId:
-              loja[0]._id
-          }
-        ],
-        {
-          session
-        }
-      );
+        tipo: "admin",
+
+        ativo: true,
+
+        lojaId: loja._id
+      });
 
     // =========================
-    // FINALIZA TRANSAÇÃO
-    // =========================
-    await session.commitTransaction();
-
-    // =========================
-    // TOKEN JWT
+    // TOKEN
     // =========================
     const token =
       jwt.sign(
 
         {
-          id:
-            admin[0]._id,
+          id: usuario._id,
 
-          nome:
-            admin[0].nome,
+          tipo: usuario.tipo,
 
-          email:
-            admin[0].email,
-
-          tipo:
-            admin[0].tipo,
-
-          lojaId:
-            loja[0]._id
+          lojaId: loja._id
         },
 
         SECRET,
@@ -208,68 +145,38 @@ router.post("/criar", async (req, res) => {
     // =========================
     return res.status(201).json({
 
-      mensagem:
-        "Loja criada com sucesso",
+      sucesso: true,
 
       token,
 
       user: {
 
-        id:
-          admin[0]._id,
+        id: usuario._id,
 
-        nome:
-          admin[0].nome,
+        nome: usuario.nome,
 
-        email:
-          admin[0].email,
+        email: usuario.email,
 
-        tipo:
-          admin[0].tipo,
+        tipo: usuario.tipo,
 
-        lojaId:
-          loja[0]._id,
-
-        loja: {
-
-          id:
-            loja[0]._id,
-
-          nome:
-            loja[0].nome,
-
-          documento:
-            loja[0].documento,
-
-          plano:
-            loja[0].plano,
-
-          status:
-            loja[0].status
-        }
+        lojaId: loja._id
       }
     });
 
   } catch (err) {
 
-    await session.abortTransaction();
-
     console.log(
-      "ERRO CRIAR LOJA:",
+      "❌ ERRO CRIAR LOJA:",
       err
     );
 
     return res.status(500).json({
 
-      erro:
-        "Erro ao criar loja"
+      erro: "Erro ao criar loja",
+
+      detalhe: err.message
     });
-
-  } finally {
-
-    session.endSession();
   }
 });
-
 
 module.exports = router;

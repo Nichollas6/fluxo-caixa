@@ -2,179 +2,223 @@ const express = require("express");
 
 const router = express.Router();
 
-const jwt = require("jsonwebtoken");
-
-const Loja = require("../models/Loja");
 const Usuario = require("../models/Usuario");
+const Loja = require("../models/Loja");
+
+const jwt = require("jsonwebtoken");
 
 const SECRET =
   process.env.JWT_SECRET ||
   "segredo_super_forte";
 
 
-// =========================
-// CRIAR LOJA
-// =========================
-router.post("/criar", async (req, res) => {
+// ============================
+// LOGIN
+// ============================
+router.post("/", async (req, res) => {
 
   try {
 
+    console.log("BODY LOGIN:", req.body);
+
     let {
-      nome,
-      documento,
       email,
       senha
     } = req.body;
 
     // =========================
-    // VALIDAÇÃO
+    // NORMALIZA DADOS
     // =========================
-    if (
-      !nome ||
-      !documento ||
-      !email ||
-      !senha
-    ) {
-
-      return res.status(400).json({
-        erro: "Preencha todos os campos"
-      });
-    }
-
-    // =========================
-    // NORMALIZA
-    // =========================
-    nome = nome.trim();
-
-    documento =
-      documento.replace(/\D/g, "");
-
     email =
-      email.trim().toLowerCase();
+      email?.trim().toLowerCase();
 
     senha =
-      senha.trim();
+      senha?.trim();
 
-    // =========================
-    // VERIFICA LOJA
-    // =========================
-    const lojaExiste =
-      await Loja.findOne({
-        documento
-      });
-
-    if (lojaExiste) {
+    if (!email || !senha) {
 
       return res.status(400).json({
-        erro: "Documento já cadastrado"
+        erro:
+          "Preencha todos os campos"
       });
     }
 
     // =========================
-    // VERIFICA EMAIL
+    // BUSCA USUÁRIO
     // =========================
-    const usuarioExiste =
+    const user =
       await Usuario.findOne({
         email
-      });
+      }).select("+senha");
 
-    if (usuarioExiste) {
+    console.log("USER:", user);
 
-      return res.status(400).json({
-        erro: "Email já cadastrado"
+    if (!user) {
+
+      return res.status(401).json({
+        erro:
+          "Usuário não encontrado"
       });
     }
 
     // =========================
-    // CRIA LOJA
+    // USUÁRIO INATIVO
+    // =========================
+    if (user.ativo === false) {
+
+      return res.status(403).json({
+        erro:
+          "Usuário desativado"
+      });
+    }
+
+    // =========================
+    // VALIDAR SENHA
+    // =========================
+    if (
+      typeof user.compararSenha !==
+      "function"
+    ) {
+
+      console.log(
+        "compararSenha não existe"
+      );
+
+      return res.status(500).json({
+        erro:
+          "Método compararSenha não encontrado"
+      });
+    }
+
+    const senhaValida =
+      await user.compararSenha(
+        senha
+      );
+
+    console.log(
+      "SENHA VALIDA:",
+      senhaValida
+    );
+
+    if (!senhaValida) {
+
+      return res.status(401).json({
+        erro:
+          "Senha incorreta"
+      });
+    }
+
+    // =========================
+    // BUSCAR LOJA
     // =========================
     const loja =
-      await Loja.create({
+      await Loja.findById(
+        user.lojaId
+      );
 
-        nome,
+    console.log("LOJA:", loja);
 
-        documento,
+    if (!loja) {
 
-        status: "ativo",
-
-        plano: "free"
+      return res.status(404).json({
+        erro:
+          "Loja não encontrada"
       });
+    }
 
     // =========================
-    // CRIA ADMIN
+    // LOJA BLOQUEADA
     // =========================
-    const usuario =
-      await Usuario.create({
+    if (
+      loja.status ===
+      "bloqueado"
+    ) {
 
-        nome,
-
-        email,
-
-        senha,
-
-        tipo: "admin",
-
-        ativo: true,
-
-        lojaId: loja._id
+      return res.status(403).json({
+        erro:
+          "Loja bloqueada"
       });
+    }
 
     // =========================
-    // TOKEN
+    // TOKEN JWT
     // =========================
     const token =
       jwt.sign(
 
         {
-          id: usuario._id,
-
-          tipo: usuario.tipo,
-
+          id: user._id,
+          nome: user.nome,
+          email: user.email,
+          tipo: user.tipo,
           lojaId: loja._id
         },
 
         SECRET,
 
         {
-          expiresIn: "7d"
+          expiresIn: "8h"
         }
       );
 
     // =========================
     // RESPOSTA
     // =========================
-    return res.status(201).json({
-
-      sucesso: true,
+    return res.json({
 
       token,
 
       user: {
 
-        id: usuario._id,
+        id:
+          user._id,
 
-        nome: usuario.nome,
+        nome:
+          user.nome || "",
 
-        email: usuario.email,
+        email:
+          user.email,
 
-        tipo: usuario.tipo,
+        tipo:
+          user.tipo,
 
-        lojaId: loja._id
+        lojaId:
+          loja._id,
+
+        loja: {
+
+          id:
+            loja._id,
+
+          nome:
+            loja.nome,
+
+          documento:
+            loja.documento,
+
+          plano:
+            loja.plano,
+
+          status:
+            loja.status
+        }
       }
     });
 
   } catch (err) {
 
     console.log(
-      "❌ ERRO CRIAR LOJA:",
+      "ERRO LOGIN COMPLETO:",
       err
     );
 
     return res.status(500).json({
 
-      erro: "Erro ao criar loja",
+      erro:
+        "Erro interno no login",
 
-      detalhe: err.message
+      detalhe:
+        err.message
     });
   }
 });
