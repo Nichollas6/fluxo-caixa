@@ -12,18 +12,14 @@ const auth = require("../middleware/auth");
 // DASHBOARD MULTI LOJA
 // ================================
 router.get("/", auth, async (req, res) => {
-
   try {
 
     // =========================
     // VALIDA TOKEN
     // =========================
-    if (
-      !req.user ||
-      !req.user.lojaId
-    ) {
+    if (!req.user || !req.user.lojaId) {
       return res.status(401).json({
-        erro: "Token inválido"
+        erro: "Usuário não autenticado"
       });
     }
 
@@ -32,11 +28,11 @@ router.get("/", auth, async (req, res) => {
     // =========================
     // FILTROS
     // =========================
-    let filtroVendas = {
+    const filtroVendas = {
       lojaId: req.user.lojaId
     };
 
-    let filtroContas = {
+    const filtroContas = {
       lojaId: req.user.lojaId,
       pago: true
     };
@@ -49,39 +45,38 @@ router.get("/", auth, async (req, res) => {
       const anoAtual =
         new Date().getFullYear();
 
-      const inicio =
-        new Date(
-          anoAtual,
-          Number(mes) - 1,
-          1
-        );
+      const inicio = new Date(
+        anoAtual,
+        Number(mes) - 1,
+        1,
+        0,
+        0,
+        0
+      );
 
-      const fim =
-        new Date(
-          anoAtual,
-          Number(mes),
-          0,
-          23,
-          59,
-          59
-        );
+      const fim = new Date(
+        anoAtual,
+        Number(mes),
+        0,
+        23,
+        59,
+        59
+      );
 
-      // vendas
+      // filtro vendas
       filtroVendas.data = {
         $gte: inicio,
         $lte: fim
       };
 
-      // contas
+      // filtro contas
       filtroContas.$or = [
-
         {
           dataPagamento: {
             $gte: inicio,
             $lte: fim
           }
         },
-
         {
           data: {
             $gte: inicio,
@@ -100,19 +95,18 @@ router.get("/", auth, async (req, res) => {
     const contas =
       await Conta.find(filtroContas);
 
+    // =========================
+    // RESUMO GRÁFICO
+    // =========================
     const resumo = {};
 
-    // =========================
     // ENTRADAS
-    // =========================
     vendas.forEach((venda) => {
 
       const dia =
-        new Date(venda.data)
-        .getDate();
+        new Date(venda.data).getDate();
 
       if (!resumo[dia]) {
-
         resumo[dia] = {
           dia,
           entrada: 0,
@@ -128,9 +122,7 @@ router.get("/", auth, async (req, res) => {
         Number(venda.lucro || 0);
     });
 
-    // =========================
     // SAÍDAS
-    // =========================
     contas.forEach((conta) => {
 
       const dataConta =
@@ -138,11 +130,9 @@ router.get("/", auth, async (req, res) => {
         conta.data;
 
       const dia =
-        new Date(dataConta)
-        .getDate();
+        new Date(dataConta).getDate();
 
       if (!resumo[dia]) {
-
         resumo[dia] = {
           dia,
           entrada: 0,
@@ -156,74 +146,50 @@ router.get("/", auth, async (req, res) => {
     });
 
     // =========================
-    // ORDENA GRÁFICO
+    // ORDENAÇÃO
     // =========================
     const grafico =
       Object.values(resumo)
-      .sort((a, b) =>
-        a.dia - b.dia
-      );
+      .sort((a, b) => a.dia - b.dia);
 
     // =========================
     // TOTAIS
     // =========================
     const totalEntradas =
       vendas.reduce(
-
         (acc, item) =>
-
-          acc +
-          Number(item.valor || 0),
-
+          acc + Number(item.valor || 0),
         0
       );
 
     const totalSaidas =
       contas.reduce(
-
         (acc, item) =>
-
-          acc +
-          Number(item.valor || 0),
-
+          acc + Number(item.valor || 0),
         0
       );
 
     const totalLucro =
       vendas.reduce(
-
         (acc, item) =>
-
-          acc +
-          Number(item.lucro || 0),
-
+          acc + Number(item.lucro || 0),
         0
       );
 
-    const saldoFinal =
-      totalEntradas -
-      totalSaidas;
+    const saldo =
+      totalEntradas - totalSaidas;
 
     // =========================
     // RESPOSTA
     // =========================
-    res.json({
-
+    return res.json({
       grafico,
 
       resumo: {
-
-        entradas:
-          totalEntradas,
-
-        saidas:
-          totalSaidas,
-
-        lucro:
-          totalLucro,
-
-        saldo:
-          saldoFinal
+        entradas: totalEntradas,
+        saidas: totalSaidas,
+        lucro: totalLucro,
+        saldo
       }
     });
 
@@ -234,8 +200,7 @@ router.get("/", auth, async (req, res) => {
       err
     );
 
-    res.status(500).json({
-
+    return res.status(500).json({
       erro:
         err.message ||
         "Erro ao carregar dashboard"
