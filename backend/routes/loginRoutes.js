@@ -14,10 +14,10 @@ router.post("/", async (req, res) => {
     let { email, senha } = req.body;
 
     // =========================
-    // NORMALIZAÇÃO FORTE (IMPORTANTE)
+    // NORMALIZAÇÃO SEGURA
     // =========================
-    email = (email || "").trim().toLowerCase();
-    senha = (senha || "").trim();
+    email = String(email || "").trim().toLowerCase();
+    senha = String(senha || "").trim();
 
     if (!email || !senha) {
       return res.status(400).json({
@@ -38,18 +38,12 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // =========================
-    // STATUS
-    // =========================
     if (!user.ativo) {
       return res.status(403).json({
         erro: "Usuário desativado"
       });
     }
 
-    // =========================
-    // SEGURANÇA LOJA
-    // =========================
     if (!user.lojaId) {
       return res.status(400).json({
         erro: "Usuário sem loja vinculada"
@@ -57,7 +51,18 @@ router.post("/", async (req, res) => {
     }
 
     // =========================
-    // SENHA SEGURA
+    // VALIDA MÉTODO SENHA
+    // =========================
+    if (typeof user.compararSenha !== "function") {
+      console.log("ERRO: compararSenha não existe no model");
+
+      return res.status(500).json({
+        erro: "Erro interno no sistema (senha)"
+      });
+    }
+
+    // =========================
+    // VALIDA SENHA
     // =========================
     const senhaValida = await user.compararSenha(senha);
 
@@ -125,7 +130,7 @@ router.post("/", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("ERRO LOGIN COMPLETO:", err);
+    console.log("❌ ERRO LOGIN COMPLETO:", err);
 
     return res.status(500).json({
       erro: "Erro interno no login",

@@ -43,31 +43,20 @@ const LojaSchema = new mongoose.Schema(
   }
 );
 
-// índice correto
+// 🔥 índices (IMPORTANTE: só isso aqui, nada duplicado)
 LojaSchema.index({ documento: 1 }, { unique: true });
 LojaSchema.index({ email: 1 }, { unique: true });
 
-// normalização segura
-LojaSchema.pre("save", function (next) {
-  try {
-    if (this.email) {
-      this.email = this.email.trim().toLowerCase();
-    }
+// 🔥 normalização SEGURA (sem next)
+LojaSchema.pre("save", function () {
+  if (this.email) {
+    this.email = this.email.trim().toLowerCase();
+  }
 
-    if (this.documento) {
-      this.documento = this.documento.replace(/\D/g, "");
-
-      if (this.documento.length < 11 || this.documento.length > 14) {
-        return next(new Error("Documento inválido"));
-      }
-    }
-
-    next();
-  } catch (err) {
-    next(err);
+  if (this.documento) {
+    this.documento = this.documento.replace(/\D/g, "");
   }
 });
 
 module.exports =
-  mongoose.models.Loja ||
-  mongoose.model("Loja", LojaSchema);
+  mongoose.models.Loja || mongoose.model("Loja", LojaSchema);
