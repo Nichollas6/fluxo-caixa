@@ -16,7 +16,10 @@ const SECRET =
 // LOGIN
 // ============================
 router.post("/", async (req, res) => {
+
   try {
+
+    console.log("BODY LOGIN:", req.body);
 
     let {
       email,
@@ -32,10 +35,7 @@ router.post("/", async (req, res) => {
     senha =
       senha?.trim();
 
-    if (
-      !email ||
-      !senha
-    ) {
+    if (!email || !senha) {
 
       return res.status(400).json({
         erro:
@@ -49,8 +49,9 @@ router.post("/", async (req, res) => {
     const user =
       await Usuario.findOne({
         email
-      })
-      .select("+senha");
+      }).select("+senha");
+
+    console.log("USER:", user);
 
     if (!user) {
 
@@ -63,7 +64,7 @@ router.post("/", async (req, res) => {
     // =========================
     // USUÁRIO INATIVO
     // =========================
-    if (!user.ativo) {
+    if (user.ativo === false) {
 
       return res.status(403).json({
         erro:
@@ -74,10 +75,30 @@ router.post("/", async (req, res) => {
     // =========================
     // VALIDAR SENHA
     // =========================
+    if (
+      typeof user.compararSenha !==
+      "function"
+    ) {
+
+      console.log(
+        "compararSenha não existe"
+      );
+
+      return res.status(500).json({
+        erro:
+          "Método compararSenha não encontrado"
+      });
+    }
+
     const senhaValida =
       await user.compararSenha(
         senha
       );
+
+    console.log(
+      "SENHA VALIDA:",
+      senhaValida
+    );
 
     if (!senhaValida) {
 
@@ -95,6 +116,8 @@ router.post("/", async (req, res) => {
         user.lojaId
       );
 
+    console.log("LOJA:", loja);
+
     if (!loja) {
 
       return res.status(404).json({
@@ -106,7 +129,10 @@ router.post("/", async (req, res) => {
     // =========================
     // LOJA BLOQUEADA
     // =========================
-    if (loja.status === "bloqueado") {
+    if (
+      loja.status ===
+      "bloqueado"
+    ) {
 
       return res.status(403).json({
         erro:
@@ -122,13 +148,9 @@ router.post("/", async (req, res) => {
 
         {
           id: user._id,
-
           nome: user.nome,
-
           email: user.email,
-
           tipo: user.tipo,
-
           lojaId: loja._id
         },
 
@@ -142,7 +164,7 @@ router.post("/", async (req, res) => {
     // =========================
     // RESPOSTA
     // =========================
-    res.json({
+    return res.json({
 
       token,
 
@@ -186,17 +208,19 @@ router.post("/", async (req, res) => {
   } catch (err) {
 
     console.log(
-      "ERRO LOGIN:",
+      "ERRO LOGIN COMPLETO:",
       err
     );
 
-    res.status(500).json({
+    return res.status(500).json({
 
       erro:
-        "Erro interno no login"
+        "Erro interno no login",
+
+      detalhe:
+        err.message
     });
   }
 });
-
 
 module.exports = router;
