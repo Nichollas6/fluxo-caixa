@@ -23,7 +23,8 @@ router.post("/criar", async (req, res) => {
       nome,
       documento,
       email,
-      senha
+      senha,
+      telefone
     } = req.body;
 
     // =========================
@@ -42,18 +43,39 @@ router.post("/criar", async (req, res) => {
     }
 
     // =========================
-    // NORMALIZA
+    // NORMALIZAÇÃO
     // =========================
-    nome = nome.trim();
+    nome =
+      nome.trim();
 
     documento =
       documento.replace(/\D/g, "");
 
     email =
-      email.trim().toLowerCase();
+      email
+      .trim()
+      .toLowerCase();
 
     senha =
       senha.trim();
+
+    telefone =
+      telefone
+        ? telefone.replace(/\D/g, "")
+        : "";
+
+    // =========================
+    // VALIDAR DOCUMENTO
+    // =========================
+    if (
+      documento.length < 11 ||
+      documento.length > 14
+    ) {
+
+      return res.status(400).json({
+        erro: "Documento inválido"
+      });
+    }
 
     // =========================
     // VERIFICA LOJA
@@ -93,15 +115,19 @@ router.post("/criar", async (req, res) => {
 
         nome,
 
+        email,
+
+        telefone,
+
         documento,
 
-        status: "ativo",
+        plano: "free",
 
-        plano: "free"
+        status: "ativo"
       });
 
     // =========================
-    // CRIA ADMIN
+    // CRIA USUÁRIO ADMIN
     // =========================
     const usuario =
       await Usuario.create({
@@ -120,13 +146,17 @@ router.post("/criar", async (req, res) => {
       });
 
     // =========================
-    // TOKEN
+    // TOKEN JWT
     // =========================
     const token =
       jwt.sign(
 
         {
           id: usuario._id,
+
+          nome: usuario.nome,
+
+          email: usuario.email,
 
           tipo: usuario.tipo,
 
@@ -147,19 +177,51 @@ router.post("/criar", async (req, res) => {
 
       sucesso: true,
 
+      mensagem:
+        "Loja criada com sucesso",
+
       token,
 
       user: {
 
-        id: usuario._id,
+        id:
+          usuario._id,
 
-        nome: usuario.nome,
+        nome:
+          usuario.nome,
 
-        email: usuario.email,
+        email:
+          usuario.email,
 
-        tipo: usuario.tipo,
+        tipo:
+          usuario.tipo,
 
-        lojaId: loja._id
+        lojaId:
+          loja._id,
+
+        loja: {
+
+          id:
+            loja._id,
+
+          nome:
+            loja.nome,
+
+          email:
+            loja.email,
+
+          telefone:
+            loja.telefone,
+
+          documento:
+            loja.documento,
+
+          plano:
+            loja.plano,
+
+          status:
+            loja.status
+        }
       }
     });
 
@@ -172,9 +234,11 @@ router.post("/criar", async (req, res) => {
 
     return res.status(500).json({
 
-      erro: "Erro ao criar loja",
+      erro:
+        "Erro ao criar loja",
 
-      detalhe: err.message
+      detalhe:
+        err.message
     });
   }
 });
