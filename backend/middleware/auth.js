@@ -2,28 +2,22 @@ const jwt = require("jsonwebtoken");
 
 module.exports = (req, res, next) => {
   try {
-
     // pega authorization
-    const authHeader =
-      req.headers.authorization;
+    const authHeader = req.headers.authorization;
 
     console.log("HEADER:", authHeader);
 
     // valida header
     if (!authHeader) {
-
       return res.status(401).json({
         erro: "Token não enviado"
       });
     }
 
     // Bearer TOKEN
-    const parts =
-      authHeader.split(" ");
+    const parts = authHeader.split(" ");
 
-    if (
-      parts.length !== 2
-    ) {
+    if (parts.length !== 2) {
       return res.status(401).json({
         erro: "Token mal formatado"
       });
@@ -33,49 +27,38 @@ module.exports = (req, res, next) => {
 
     // valida Bearer
     if (!/^Bearer$/i.test(scheme)) {
-
       return res.status(401).json({
-        erro: "Token mal formatado"
+        erro: "Formato deve ser: Bearer TOKEN"
       });
     }
-
-    console.log("TOKEN:", token);
 
     // verifica token
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET ||
-      "segredo_super_forte"
+      process.env.JWT_SECRET || "segredo_super_forte"
     );
 
-    console.log(
-      "TOKEN DECODIFICADO:",
-      decoded
-    );
+    console.log("TOKEN DECODIFICADO:", decoded);
 
-    // salva dados no req
-    req.user = decoded;
+    // salva usuário
+    req.user = {
+      id: decoded.id,
+      lojaId: decoded.lojaId,
+      tipo: decoded.tipo
+    };
 
-    req.userId =
-      decoded.id;
-
-    req.lojaId =
-      decoded.lojaId;
-
-    req.tipo =
-      decoded.tipo;
+    // atalhos
+    req.userId = decoded.id;
+    req.lojaId = decoded.lojaId;
+    req.tipo = decoded.tipo;
 
     next();
 
   } catch (err) {
-
-    console.log(
-      "ERRO AUTH:",
-      err.message
-    );
+    console.log("ERRO AUTH:", err);
 
     return res.status(401).json({
-      erro: "Token inválido"
+      erro: "Token inválido ou expirado"
     });
   }
 };
