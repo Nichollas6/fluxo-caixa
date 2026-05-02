@@ -1,64 +1,115 @@
 const jwt = require("jsonwebtoken");
 
 module.exports = (req, res, next) => {
-  try {
-    // pega authorization
-    const authHeader = req.headers.authorization;
 
-    console.log("HEADER:", authHeader);
+  try {
+
+    // =========================
+    // HEADER AUTHORIZATION
+    // =========================
+    const authHeader =
+      req.headers.authorization;
 
     // valida header
     if (!authHeader) {
+
       return res.status(401).json({
         erro: "Token não enviado"
       });
     }
 
-    // Bearer TOKEN
-    const parts = authHeader.split(" ");
+    // =========================
+    // FORMATO BEARER TOKEN
+    // =========================
+    const parts =
+      authHeader.split(" ");
 
     if (parts.length !== 2) {
+
       return res.status(401).json({
         erro: "Token mal formatado"
       });
     }
 
-    const [scheme, token] = parts;
+    const [scheme, token] =
+      parts;
 
-    // valida Bearer
+    // valida bearer
     if (!/^Bearer$/i.test(scheme)) {
+
       return res.status(401).json({
-        erro: "Formato deve ser: Bearer TOKEN"
+        erro:
+          "Formato correto: Bearer TOKEN"
       });
     }
 
-    // verifica token
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "segredo_super_forte"
-    );
+    // =========================
+    // JWT SECRET
+    // =========================
+    const secret =
+      process.env.JWT_SECRET ||
+      "segredo_super_forte";
 
-    console.log("TOKEN DECODIFICADO:", decoded);
+    // =========================
+    // VERIFICA TOKEN
+    // =========================
+    const decoded =
+      jwt.verify(
+        token,
+        secret
+      );
 
-    // salva usuário
+    // =========================
+    // VALIDA DADOS
+    // =========================
+    if (
+      !decoded.id ||
+      !decoded.lojaId
+    ) {
+
+      return res.status(401).json({
+        erro:
+          "Token inválido"
+      });
+    }
+
+    // =========================
+    // SALVA NO REQUEST
+    // =========================
     req.user = {
-      id: decoded.id,
-      lojaId: decoded.lojaId,
-      tipo: decoded.tipo
+
+      id:
+        decoded.id,
+
+      lojaId:
+        decoded.lojaId,
+
+      tipo:
+        decoded.tipo
     };
 
-    // atalhos
-    req.userId = decoded.id;
-    req.lojaId = decoded.lojaId;
-    req.tipo = decoded.tipo;
+    req.userId =
+      decoded.id;
+
+    req.lojaId =
+      decoded.lojaId;
+
+    req.tipo =
+      decoded.tipo;
 
     next();
 
   } catch (err) {
-    console.log("ERRO AUTH:", err);
+
+    console.log(
+      "❌ ERRO AUTH:",
+      err.message
+    );
 
     return res.status(401).json({
-      erro: "Token inválido ou expirado"
+
+      erro:
+        "Token inválido ou expirado"
     });
   }
 };

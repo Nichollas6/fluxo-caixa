@@ -22,19 +22,21 @@ app.use(express.json());
 // =========================
 if (!process.env.MONGO_URI) {
 
-  console.log(
-    "❌ MONGO_URI NÃO DEFINIDA"
-  );
+  console.log("❌ MONGO_URI NÃO DEFINIDA");
 
   process.exit(1);
 }
 
 if (!process.env.JWT_SECRET) {
 
-  console.log(
-    "⚠️ JWT_SECRET NÃO DEFINIDO"
-  );
+  console.log("⚠️ JWT_SECRET NÃO DEFINIDO");
 }
+
+
+// =========================
+// CONFIG MONGOOSE
+// =========================
+mongoose.set("strictQuery", true);
 
 
 // =========================
@@ -44,24 +46,21 @@ mongoose.connect(
   process.env.MONGO_URI,
   {
     dbName: "erp",
-    serverSelectionTimeoutMS: 30000
+    serverSelectionTimeoutMS: 30000,
+    socketTimeoutMS: 45000
   }
 )
 .then(() => {
 
-  console.log(
-    "🔥 Mongo conectado"
-  );
+  console.log("🔥 Mongo conectado");
 
 })
 .catch((err) => {
 
-  console.log(
-    "❌ ERRO MONGO:"
-  );
+  console.log("❌ ERRO MONGO:");
+  console.log(err.message);
 
-  console.log(err);
-
+  process.exit(1);
 });
 
 
@@ -72,9 +71,7 @@ mongoose.connection.on(
   "connected",
   () => {
 
-    console.log(
-      "✅ Mongoose conectado"
-    );
+    console.log("✅ Mongoose conectado");
 
   }
 );
@@ -83,11 +80,8 @@ mongoose.connection.on(
   "error",
   (err) => {
 
-    console.log(
-      "❌ Erro mongoose:"
-    );
-
-    console.log(err);
+    console.log("❌ Erro mongoose:");
+    console.log(err.message);
 
   }
 );
@@ -96,9 +90,7 @@ mongoose.connection.on(
   "disconnected",
   () => {
 
-    console.log(
-      "⚠️ Mongo desconectado"
-    );
+    console.log("⚠️ Mongo desconectado");
 
   }
 );
@@ -120,55 +112,25 @@ app.get("/", (req, res) => {
 // =========================
 // ROTAS
 // =========================
-app.use(
-  "/login",
-  require("./routes/loginRoutes")
-);
+app.use("/login", require("./routes/loginRoutes"));
 
-app.use(
-  "/loja",
-  require("./routes/lojaRoutes")
-);
+app.use("/loja", require("./routes/lojaRoutes"));
 
-app.use(
-  "/usuarios",
-  require("./routes/usuarioRoutes")
-);
+app.use("/usuarios", require("./routes/usuarioRoutes"));
 
-app.use(
-  "/produtos",
-  require("./routes/produtoRoutes")
-);
+app.use("/produtos", require("./routes/produtoRoutes"));
 
-app.use(
-  "/clientes",
-  require("./routes/clienteRoutes")
-);
+app.use("/clientes", require("./routes/clienteRoutes"));
 
-app.use(
-  "/vendas",
-  require("./routes/vendaRoutes")
-);
+app.use("/vendas", require("./routes/vendaRoutes"));
 
-app.use(
-  "/recibo",
-  require("./routes/reciboRoutes")
-);
+app.use("/recibo", require("./routes/reciboRoutes"));
 
-app.use(
-  "/caixa",
-  require("./routes/caixaRoutes")
-);
+app.use("/caixa", require("./routes/caixaRoutes"));
 
-app.use(
-  "/dashboard",
-  require("./routes/dashboardRoutes")
-);
+app.use("/dashboard", require("./routes/dashboardRoutes"));
 
-app.use(
-  "/contas",
-  require("./routes/contaRoutes")
-);
+app.use("/contas", require("./routes/contaRoutes"));
 
 
 // =========================
@@ -188,10 +150,7 @@ app.use((req, res) => {
 // =========================
 app.use((err, req, res, next) => {
 
-  console.log(
-    "❌ ERRO GLOBAL:"
-  );
-
+  console.log("❌ ERRO GLOBAL:");
   console.log(err);
 
   return res.status(500).json({

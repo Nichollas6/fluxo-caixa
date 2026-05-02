@@ -46,22 +46,24 @@ router.post("/criar", async (req, res) => {
     // NORMALIZAÇÃO
     // =========================
     nome =
-      nome.trim();
+      String(nome).trim();
 
     documento =
-      documento.replace(/\D/g, "");
+      String(documento)
+      .replace(/\D/g, "");
 
     email =
-      email
+      String(email)
       .trim()
       .toLowerCase();
 
     senha =
-      senha.trim();
+      String(senha).trim();
 
     telefone =
       telefone
-        ? telefone.replace(/\D/g, "")
+        ? String(telefone)
+            .replace(/\D/g, "")
         : "";
 
     // =========================
@@ -74,6 +76,19 @@ router.post("/criar", async (req, res) => {
 
       return res.status(400).json({
         erro: "Documento inválido"
+      });
+    }
+
+    // =========================
+    // VALIDAR EMAIL
+    // =========================
+    const emailValido =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailValido.test(email)) {
+
+      return res.status(400).json({
+        erro: "Email inválido"
       });
     }
 
@@ -127,7 +142,7 @@ router.post("/criar", async (req, res) => {
       });
 
     // =========================
-    // CRIA USUÁRIO ADMIN
+    // CRIA ADMIN
     // =========================
     const usuario =
       await Usuario.create({
@@ -146,7 +161,7 @@ router.post("/criar", async (req, res) => {
       });
 
     // =========================
-    // TOKEN JWT
+    // TOKEN
     // =========================
     const token =
       jwt.sign(
@@ -228,9 +243,10 @@ router.post("/criar", async (req, res) => {
   } catch (err) {
 
     console.log(
-      "❌ ERRO CRIAR LOJA:",
-      err
+      "❌ ERRO CRIAR LOJA:"
     );
+
+    console.log(err);
 
     return res.status(500).json({
 

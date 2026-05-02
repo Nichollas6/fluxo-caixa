@@ -67,32 +67,33 @@ ContaSchema.index({
 // ===========================
 // NORMALIZA DADOS
 // ===========================
-ContaSchema.pre(
-  "save",
-  function (next) {
+ContaSchema.pre("save", function () {
 
-    if (this.descricao) {
+  // descrição
+  if (this.descricao) {
 
-      this.descricao =
-        this.descricao.trim();
-    }
-
-    if (this.categoria) {
-
-      this.categoria =
-        this.categoria
-          .trim()
-          .toLowerCase();
-    }
-
-    this.valor =
-      Number(this.valor || 0);
-
-    next();
+    this.descricao =
+      this.descricao.trim();
   }
-);
+
+  // categoria
+  if (this.categoria) {
+
+    this.categoria =
+      this.categoria
+      .trim()
+      .toLowerCase();
+  }
+
+  // valor
+  this.valor =
+    Number(this.valor || 0);
+});
 
 
+// ===========================
+// EXPORT
+// ===========================
 module.exports =
   mongoose.models.Conta ||
   mongoose.model(
