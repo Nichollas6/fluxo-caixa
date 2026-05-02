@@ -1,9 +1,11 @@
 const express = require("express");
+
 const router = express.Router();
 
 const Produto = require("../models/Produto");
 const Venda = require("../models/Venda");
 const Caixa = require("../models/Caixa");
+const Cliente = require("../models/Cliente");
 
 const auth = require("../middleware/auth");
 
@@ -13,104 +15,231 @@ const auth = require("../middleware/auth");
 // =============================
 router.post("/", auth, async (req, res) => {
   try {
-    let { produtoId, cliente, qtd, vendedor } = req.body;
 
-    const lojaId = req.user.lojaId;
+    let {
+      produtoId,
+      cliente,
+      qtd
+    } = req.body;
 
-    // validações
-    if (!produtoId || !qtd) {
+    const lojaId =
+      req.lojaId;
+
+    // =========================
+    // VALIDAÇÕES
+    // =========================
+    if (
+      !produtoId ||
+      !qtd
+    ) {
+
       return res.status(400).json({
-        erro: "Dados incompletos"
+        erro:
+          "Dados incompletos"
       });
     }
 
-    qtd = Number(qtd);
+    qtd =
+      Number(qtd);
 
-    if (qtd <= 0) {
+    if (
+      isNaN(qtd) ||
+      qtd <= 0
+    ) {
+
       return res.status(400).json({
-        erro: "Quantidade inválida"
+        erro:
+          "Quantidade inválida"
       });
     }
 
-    // buscar caixa da loja
-    const caixa = await Caixa.findOne({
-      lojaId,
-      status: "aberto"
-    });
+    // =========================
+    // BUSCAR CAIXA
+    // =========================
+    const caixa =
+      await Caixa.findOne({
+
+        lojaId,
+
+        status: "aberto"
+      });
 
     if (!caixa) {
+
       return res.status(400).json({
-        erro: "Abra o caixa primeiro"
+        erro:
+          "Abra o caixa primeiro"
       });
     }
 
-    // buscar produto da loja
-    const produto = await Produto.findOne({
-      _id: produtoId,
-      lojaId
-    });
+    // =========================
+    // BUSCAR PRODUTO
+    // =========================
+    const produto =
+      await Produto.findOne({
+
+        _id:
+          produtoId,
+
+        lojaId,
+
+        ativo: true
+      });
 
     if (!produto) {
+
       return res.status(404).json({
-        erro: "Produto não encontrado"
+        erro:
+          "Produto não encontrado"
       });
     }
 
-    // validar estoque
-    if (produto.estoque < qtd) {
+    // =========================
+    // VALIDAR ESTOQUE
+    // =========================
+    if (
+      produto.estoque < qtd
+    ) {
+
       return res.status(400).json({
-        erro: "Estoque insuficiente"
+        erro:
+          "Estoque insuficiente"
       });
     }
 
-    // baixar estoque
+    // =========================
+    // BAIXAR ESTOQUE
+    // =========================
     produto.estoque -= qtd;
+
     await produto.save();
 
-    // cálculos
+    // =========================
+    // CÁLCULOS
+    // =========================
     const total =
-      Number(produto.preco) * qtd;
+      Number(produto.preco) *
+      qtd;
 
     const lucro =
       total -
-      (Number(produto.custo) * qtd);
+      (
+        Number(produto.custo) *
+        qtd
+      );
 
-    // criar venda
-    const venda = await Venda.create({
-      lojaId,
-      produto: produto.nome,
-      cliente: cliente || "Balcão",
-      vendedor: vendedor || "Sistema",
-      quantidade: qtd,
-      valor: total,
-      lucro,
-      data: new Date()
-    });
+    // =========================
+    // CLIENTE
+    // =========================
+    const nomeCliente =
+      cliente?.trim() ||
+      "Balcão";
 
-    // atualizar caixa
+    // =========================
+    // CRIAR VENDA
+    // =========================
+    const venda =
+      await Venda.create({
+
+        lojaId,
+
+        produto:
+          produto.nome,
+
+        cliente:
+          nomeCliente,
+
+        vendedor:
+          req.user?.nome ||
+          req.user?.email ||
+          "Sistema",
+
+        quantidade:
+          qtd,
+
+        valor:
+          total,
+
+        lucro,
+
+        data:
+          new Date()
+      });
+
+    // =========================
+    // ATUALIZA CLIENTE CRM
+    // =========================
+    if (
+      nomeCliente !== "Balcão"
+    ) {
+
+      const clienteDB =
+        await Cliente.findOne({
+
+          nome:
+            nomeCliente,
+
+          lojaId
+        });
+
+      if (clienteDB) {
+
+        clienteDB.totalCompras += 1;
+
+        clienteDB.totalGasto +=
+          total;
+
+        clienteDB.ultimaCompra =
+          new Date();
+
+        await clienteDB.save();
+      }
+    }
+
+    // =========================
+    // ATUALIZAR CAIXA
+    // =========================
     caixa.entradas =
-      (caixa.entradas || 0) + total;
+      Number(caixa.entradas || 0) +
+      total;
 
     caixa.totalVendas =
-      (caixa.totalVendas || 0) + total;
+      Number(caixa.totalVendas || 0) +
+      total;
 
     caixa.lucro =
-      (caixa.lucro || 0) + lucro;
+      Number(caixa.lucro || 0) +
+      lucro;
 
     await caixa.save();
 
+    // =========================
+    // RESPOSTA
+    // =========================
     res.json({
+
       sucesso: true,
+
+      mensagem:
+        "Venda realizada com sucesso",
+
       venda
     });
 
   } catch (err) {
-    console.log("ERRO VENDA:", err);
+
+    console.log(
+      "ERRO VENDA:",
+      err
+    );
 
     res.status(500).json({
-      erro: "Erro ao realizar venda"
+
+      erro:
+        "Erro ao realizar venda"
     });
   }
 });
+
 
 module.exports = router;
