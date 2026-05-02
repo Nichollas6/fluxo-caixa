@@ -14,46 +14,83 @@ app.use(express.json());
 // =========================
 mongoose.connect(
   process.env.MONGO_URI ||
-  "mongodb://127.0.0.1:27017/erp"
+  "mongodb://127.0.0.1:27017/erp",
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  }
 )
-.then(() => console.log("🔥 Banco conectado"))
-.catch(err => console.log("Erro Mongo:", err));
+.then(() => {
+  console.log("🔥 Banco conectado");
+})
+.catch((err) => {
+  console.log("❌ Erro Mongo:", err.message);
+});
 
 
 // =========================
 // 🔐 AUTH MIDDLEWARE
 // =========================
 function auth(req, res, next) {
+
   try {
 
     const authHeader =
       req.headers.authorization;
 
     if (!authHeader) {
+
       return res.status(401).json({
-        error: "Token não enviado"
+        erro: "Token não enviado"
       });
     }
 
-    const token =
-      authHeader.split(" ")[1];
+    const parts =
+      authHeader.split(" ");
+
+    if (parts.length !== 2) {
+
+      return res.status(401).json({
+        erro: "Token mal formatado"
+      });
+    }
+
+    const [scheme, token] =
+      parts;
+
+    if (!/^Bearer$/i.test(scheme)) {
+
+      return res.status(401).json({
+        erro: "Token inválido"
+      });
+    }
 
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET ||
+      "segredo_super_forte"
     );
 
-    req.userId = decoded.id;
-    req.lojaId = decoded.lojaId;
+    req.user = decoded;
+
+    req.userId =
+      decoded.id;
+
+    req.lojaId =
+      decoded.lojaId;
 
     next();
 
   } catch (err) {
 
-    return res.status(401).json({
-      error: "Token inválido"
-    });
+    console.log(
+      "❌ ERRO AUTH:",
+      err.message
+    );
 
+    return res.status(401).json({
+      erro: "Token inválido"
+    });
   }
 }
 
@@ -63,480 +100,438 @@ function auth(req, res, next) {
 // =========================
 
 // 🏪 LOJA
-const Loja = mongoose.model("Loja", {
-  nome: String,
-  email: String,
-  documento: String
-});
+const LojaSchema =
+  new mongoose.Schema({
+
+    nome: String,
+    email: String,
+    documento: String
+
+  });
+
+const Loja =
+  mongoose.models.Loja ||
+  mongoose.model(
+    "Loja",
+    LojaSchema
+  );
 
 
 // 🛒 VENDA
-const Venda = mongoose.model("Venda", {
+const VendaSchema =
+  new mongoose.Schema({
 
-  lojaId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Loja",
-    required: true
-  },
+    lojaId: {
+      type:
+        mongoose.Schema.Types.ObjectId,
+      ref: "Loja",
+      required: true
+    },
 
-  produto: String,
-  cliente: String,
-  vendedor: String,
-  quantidade: Number,
-  valor: Number,
-  lucro: Number,
+    produto: String,
+    cliente: String,
+    vendedor: String,
+    quantidade: Number,
+    valor: Number,
+    lucro: Number,
 
-  data: {
-    type: Date,
-    default: Date.now
-  }
-});
+    data: {
+      type: Date,
+      default: Date.now
+    }
+
+  });
+
+const Venda =
+  mongoose.models.Venda ||
+  mongoose.model(
+    "Venda",
+    VendaSchema
+  );
 
 
-// 💰 CONTAS
-const Conta = mongoose.model("Conta", {
+// 💰 CONTA
+const ContaSchema =
+  new mongoose.Schema({
 
-  lojaId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Loja",
-    required: true
-  },
+    lojaId: {
+      type:
+        mongoose.Schema.Types.ObjectId,
+      ref: "Loja",
+      required: true
+    },
 
-  descricao: String,
-  valor: Number,
+    descricao: String,
 
-  pago: {
-    type: Boolean,
-    default: false
-  },
+    valor: {
+      type: Number,
+      default: 0
+    },
 
-  data: {
-    type: Date,
-    default: Date.now
-  }
-});
+    pago: {
+      type: Boolean,
+      default: false
+    },
+
+    data: {
+      type: Date,
+      default: Date.now
+    },
+
+    dataPagamento: {
+      type: Date,
+      default: null
+    }
+
+  });
+
+const Conta =
+  mongoose.models.Conta ||
+  mongoose.model(
+    "Conta",
+    ContaSchema
+  );
 
 
 // 📦 PRODUTO
-const Produto = mongoose.model("Produto", {
+const ProdutoSchema =
+  new mongoose.Schema({
 
-  lojaId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Loja",
-    required: true
-  },
+    lojaId: {
+      type:
+        mongoose.Schema.Types.ObjectId,
+      ref: "Loja",
+      required: true
+    },
 
-  nome: String,
-  estoque: Number,
-  preco: Number,
-  custo: Number
-});
+    nome: String,
+
+    estoque: {
+      type: Number,
+      default: 0
+    },
+
+    preco: {
+      type: Number,
+      default: 0
+    },
+
+    custo: {
+      type: Number,
+      default: 0
+    }
+
+  });
+
+const Produto =
+  mongoose.models.Produto ||
+  mongoose.model(
+    "Produto",
+    ProdutoSchema
+  );
 
 
 // 🧾 CAIXA
-const Caixa = mongoose.model("Caixa", {
+const CaixaSchema =
+  new mongoose.Schema({
 
-  lojaId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Loja",
-    required: true
-  },
+    lojaId: {
+      type:
+        mongoose.Schema.Types.ObjectId,
+      ref: "Loja",
+      required: true
+    },
 
-  abertoPor: String,
+    abertoPor: String,
 
-  status: {
-    type: String,
-    enum: ["aberto", "fechado"],
-    default: "aberto"
-  },
+    status: {
+      type: String,
+      enum: [
+        "aberto",
+        "fechado"
+      ],
+      default: "aberto"
+    },
 
-  saldoInicial: Number,
-  saldoFinal: Number,
+    saldoInicial: {
+      type: Number,
+      default: 0
+    },
 
-  entradas: {
-    type: Number,
-    default: 0
-  },
+    saldoFinal: {
+      type: Number,
+      default: 0
+    },
 
-  saidas: {
-    type: Number,
-    default: 0
-  },
+    entradas: {
+      type: Number,
+      default: 0
+    },
 
-  totalVendas: {
-    type: Number,
-    default: 0
-  },
+    saidas: {
+      type: Number,
+      default: 0
+    },
 
-  lucro: {
-    type: Number,
-    default: 0
-  },
+    totalVendas: {
+      type: Number,
+      default: 0
+    },
 
-  dataAbertura: {
-    type: Date,
-    default: Date.now
-  },
+    lucro: {
+      type: Number,
+      default: 0
+    },
 
-  dataFechamento: Date
-});
+    dataAbertura: {
+      type: Date,
+      default: Date.now
+    },
+
+    dataFechamento: Date
+
+  });
+
+const Caixa =
+  mongoose.models.Caixa ||
+  mongoose.model(
+    "Caixa",
+    CaixaSchema
+  );
 
 
 // =========================
 // 📊 DASHBOARD
 // =========================
-app.get("/dashboard", auth, async (req, res) => {
-  try {
+app.get(
+  "/dashboard",
+  auth,
+  async (req, res) => {
 
-    const { mes } = req.query;
+    try {
 
-    let filtro = {
-      lojaId: req.lojaId
-    };
+      const { mes } =
+        req.query;
 
-    if (mes) {
-
-      const ano = new Date().getFullYear();
-
-      const inicio =
-        new Date(ano, mes - 1, 1);
-
-      const fim =
-        new Date(ano, mes, 0, 23, 59, 59);
-
-      filtro.data = {
-        $gte: inicio,
-        $lte: fim
+      let filtro = {
+        lojaId: req.lojaId
       };
-    }
 
-    const vendas =
-      await Venda.find(filtro);
+      if (mes) {
 
-    const resumo = {};
+        const ano =
+          new Date()
+          .getFullYear();
 
-    vendas.forEach((v) => {
+        const inicio =
+          new Date(
+            ano,
+            Number(mes) - 1,
+            1
+          );
 
-      const dia =
-        new Date(v.data).getDate();
+        const fim =
+          new Date(
+            ano,
+            Number(mes),
+            0,
+            23,
+            59,
+            59
+          );
 
-      if (!resumo[dia]) {
-
-        resumo[dia] = {
-          dia,
-          entrada: 0,
-          saida: 0
+        filtro.data = {
+          $gte: inicio,
+          $lte: fim
         };
       }
 
-      resumo[dia].entrada += v.valor;
-    });
+      const vendas =
+        await Venda.find(
+          filtro
+        );
 
-    res.json(Object.values(resumo));
+      const resumo = {};
 
-  } catch (err) {
+      vendas.forEach((v) => {
 
-    console.log(err);
+        const dia =
+          new Date(v.data)
+          .getDate();
 
-    res.status(500).json(
-      "Erro dashboard"
-    );
+        if (!resumo[dia]) {
+
+          resumo[dia] = {
+            dia,
+            entrada: 0,
+            saida: 0
+          };
+        }
+
+        resumo[dia]
+        .entrada +=
+          Number(v.valor || 0);
+      });
+
+      res.json(
+        Object.values(resumo)
+      );
+
+    } catch (err) {
+
+      console.log(
+        "❌ ERRO DASHBOARD:",
+        err
+      );
+
+      res.status(500).json({
+        erro:
+          "Erro dashboard"
+      });
+    }
   }
-});
+);
 
 
 // =========================
 // 🛒 VENDAS
 // =========================
-app.post("/venda", auth, async (req, res) => {
+app.post(
+  "/venda",
+  auth,
+  async (req, res) => {
 
-  try {
+    try {
 
-    let {
-      produtoId,
-      cliente,
-      qtd,
-      vendedor
-    } = req.body;
+      let {
+        produtoId,
+        cliente,
+        qtd,
+        vendedor
+      } = req.body;
 
-    qtd = Number(qtd);
+      qtd = Number(qtd);
 
-    const caixa =
-      await Caixa.findOne({
-        status: "aberto",
-        lojaId: req.lojaId
-      });
+      if (!produtoId || !qtd) {
 
-    if (!caixa) {
+        return res.status(400)
+        .json({
+          erro:
+            "Dados inválidos"
+        });
+      }
 
-      return res.status(400).json(
-        "Abra o caixa primeiro"
+      const caixa =
+        await Caixa.findOne({
+
+          status: "aberto",
+
+          lojaId:
+            req.lojaId
+        });
+
+      if (!caixa) {
+
+        return res.status(400)
+        .json({
+          erro:
+            "Abra o caixa primeiro"
+        });
+      }
+
+      const produto =
+        await Produto.findOne({
+
+          _id: produtoId,
+
+          lojaId:
+            req.lojaId
+        });
+
+      if (!produto) {
+
+        return res.status(404)
+        .json({
+          erro:
+            "Produto não encontrado"
+        });
+      }
+
+      if (
+        produto.estoque < qtd
+      ) {
+
+        return res.status(400)
+        .json({
+          erro:
+            "Estoque insuficiente"
+        });
+      }
+
+      produto.estoque -= qtd;
+
+      await produto.save();
+
+      const total =
+        Number(produto.preco)
+        * qtd;
+
+      const lucro =
+        total -
+        (
+          Number(produto.custo)
+          * qtd
+        );
+
+      const venda =
+        await Venda.create({
+
+          lojaId:
+            req.lojaId,
+
+          produto:
+            produto.nome,
+
+          cliente:
+            cliente ||
+            "Balcão",
+
+          vendedor:
+            vendedor ||
+            "Sistema",
+
+          quantidade:
+            qtd,
+
+          valor:
+            total,
+
+          lucro
+        });
+
+      caixa.entradas += total;
+      caixa.totalVendas += total;
+      caixa.lucro += lucro;
+
+      await caixa.save();
+
+      res.json(venda);
+
+    } catch (err) {
+
+      console.log(
+        "❌ ERRO VENDA:",
+        err
       );
-    }
 
-    const produto =
-      await Produto.findOne({
-        _id: produtoId,
-        lojaId: req.lojaId
+      res.status(500)
+      .json({
+        erro:
+          "Erro na venda"
       });
-
-    if (!produto) {
-
-      return res.status(404).json(
-        "Produto não encontrado"
-      );
     }
-
-    if (produto.estoque < qtd) {
-
-      return res.status(400).json(
-        "Estoque insuficiente"
-      );
-    }
-
-    // baixa estoque
-    produto.estoque -= qtd;
-
-    await produto.save();
-
-    const total =
-      produto.preco * qtd;
-
-    const lucro =
-      total - (produto.custo * qtd);
-
-    const venda =
-      await Venda.create({
-
-        lojaId: req.lojaId,
-
-        produto: produto.nome,
-
-        cliente:
-          cliente || "Balcão",
-
-        vendedor:
-          vendedor || "Sistema",
-
-        quantidade: qtd,
-        valor: total,
-        lucro
-      });
-
-    // atualiza caixa
-    caixa.entradas += total;
-    caixa.totalVendas += total;
-    caixa.lucro += lucro;
-
-    await caixa.save();
-
-    res.json(venda);
-
-  } catch (err) {
-
-    console.log(err);
-
-    res.status(500).json(
-      "Erro na venda"
-    );
   }
-});
-
-
-// =========================
-// 🧾 CAIXA
-// =========================
-
-// 🔍 VER
-app.get("/caixa", auth, async (req, res) => {
-
-  const caixa =
-    await Caixa.findOne({
-      status: "aberto",
-      lojaId: req.lojaId
-    });
-
-  res.json(caixa);
-});
-
-
-// 🟢 ABRIR
-app.post("/caixa/abrir", auth, async (req, res) => {
-
-  const { usuario, valor } = req.body;
-
-  const existe =
-    await Caixa.findOne({
-      status: "aberto",
-      lojaId: req.lojaId
-    });
-
-  if (existe) {
-
-    return res.status(400).json(
-      "Já existe caixa aberto"
-    );
-  }
-
-  const caixa =
-    await Caixa.create({
-
-      lojaId: req.lojaId,
-
-      abertoPor: usuario,
-
-      saldoInicial: Number(valor),
-
-      entradas: 0,
-      saidas: 0
-    });
-
-  res.json(caixa);
-});
-
-
-// 🔴 FECHAR
-app.post("/caixa/fechar", auth, async (req, res) => {
-
-  const caixa =
-    await Caixa.findOne({
-      status: "aberto",
-      lojaId: req.lojaId
-    });
-
-  if (!caixa) {
-
-    return res.status(400).json(
-      "Nenhum caixa aberto"
-    );
-  }
-
-  caixa.status = "fechado";
-
-  caixa.saldoFinal =
-    caixa.saldoInicial +
-    caixa.entradas -
-    caixa.saidas;
-
-  caixa.dataFechamento =
-    new Date();
-
-  await caixa.save();
-
-  res.json({
-    caixa,
-    totalVendas: caixa.totalVendas,
-    lucro: caixa.lucro,
-    entradas: caixa.entradas,
-    saidas: caixa.saidas
-  });
-});
-
-
-// =========================
-// 💰 CONTAS
-// =========================
-app.get("/contas", auth, async (req, res) => {
-
-  const contas =
-    await Conta.find({
-      lojaId: req.lojaId
-    });
-
-  res.json(contas);
-});
-
-
-app.post("/contas", auth, async (req, res) => {
-
-  const nova =
-    await Conta.create({
-
-      ...req.body,
-
-      lojaId: req.lojaId
-    });
-
-  res.json(nova);
-});
-
-
-// 🔥 PAGAR CONTA
-app.put("/contas/:id", auth, async (req, res) => {
-
-  const conta =
-    await Conta.findOne({
-
-      _id: req.params.id,
-
-      lojaId: req.lojaId
-    });
-
-  if (!conta) {
-
-    return res.status(404).json(
-      "Conta não encontrada"
-    );
-  }
-
-  if (conta.pago) {
-
-    return res.status(400).json(
-      "Conta já paga"
-    );
-  }
-
-  conta.pago = true;
-
-  await conta.save();
-
-  const caixa =
-    await Caixa.findOne({
-
-      status: "aberto",
-
-      lojaId: req.lojaId
-    });
-
-  if (caixa) {
-
-    caixa.saidas += conta.valor;
-
-    await caixa.save();
-  }
-
-  res.json(
-    "Conta paga e descontada do caixa"
-  );
-});
-
-
-// =========================
-// 📦 PRODUTOS
-// =========================
-app.get("/produtos", auth, async (req, res) => {
-
-  const produtos =
-    await Produto.find({
-      lojaId: req.lojaId
-    });
-
-  res.json(produtos);
-});
-
-
-app.post("/produtos", auth, async (req, res) => {
-
-  const prod =
-    await Produto.create({
-
-      ...req.body,
-
-      lojaId: req.lojaId
-    });
-
-  res.json(prod);
-});
+);
 
 
 // =========================
@@ -550,5 +545,4 @@ app.listen(PORT, () => {
   console.log(
     `🚀 Backend rodando na porta ${PORT}`
   );
-
 });
