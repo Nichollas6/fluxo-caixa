@@ -49,41 +49,33 @@ const LojaSchema = new mongoose.Schema(
 // =========================
 // NORMALIZA CPF/CNPJ
 // =========================
-LojaSchema.pre("save", function (next) {
+LojaSchema.pre("save", function () {
 
-  try {
+  // normaliza email
+  if (this.email) {
 
-    // normaliza email
-    if (this.email) {
-      this.email =
-        this.email
-        .trim()
-        .toLowerCase();
+    this.email =
+      this.email
+      .trim()
+      .toLowerCase();
+  }
+
+  // normaliza documento
+  if (this.documento) {
+
+    this.documento =
+      this.documento.replace(/\D/g, "");
+
+    // valida tamanho
+    if (
+      this.documento.length < 11 ||
+      this.documento.length > 14
+    ) {
+
+      throw new Error(
+        "Documento inválido"
+      );
     }
-
-    // normaliza documento
-    if (this.documento) {
-
-      this.documento =
-        this.documento.replace(/\D/g, "");
-
-      // valida tamanho
-      if (
-        this.documento.length < 11 ||
-        this.documento.length > 14
-      ) {
-
-        return next(
-          new Error("Documento inválido")
-        );
-      }
-    }
-
-    next();
-
-  } catch (err) {
-
-    next(err);
   }
 });
 
