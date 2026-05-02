@@ -45,22 +45,55 @@ const LojaSchema = new mongoose.Schema(
   }
 );
 
-// normaliza CPF/CNPJ
+
+// =========================
+// NORMALIZA CPF/CNPJ
+// =========================
 LojaSchema.pre("save", function (next) {
-  if (this.documento) {
-    this.documento = this.documento.replace(/\D/g, "");
 
-    if (
-      this.documento.length < 11 ||
-      this.documento.length > 14
-    ) {
-      return next(new Error("Documento inválido"));
+  try {
+
+    // normaliza email
+    if (this.email) {
+      this.email =
+        this.email
+        .trim()
+        .toLowerCase();
     }
-  }
 
-  next();
+    // normaliza documento
+    if (this.documento) {
+
+      this.documento =
+        this.documento.replace(/\D/g, "");
+
+      // valida tamanho
+      if (
+        this.documento.length < 11 ||
+        this.documento.length > 14
+      ) {
+
+        return next(
+          new Error("Documento inválido")
+        );
+      }
+    }
+
+    next();
+
+  } catch (err) {
+
+    next(err);
+  }
 });
 
+
+// =========================
+// EXPORT
+// =========================
 module.exports =
   mongoose.models.Loja ||
-  mongoose.model("Loja", LojaSchema);
+  mongoose.model(
+    "Loja",
+    LojaSchema
+  );
