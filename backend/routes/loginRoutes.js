@@ -1,224 +1,135 @@
 const express = require("express");
-
 const router = express.Router();
 
 const Usuario = require("../models/Usuario");
 const Loja = require("../models/Loja");
-
 const jwt = require("jsonwebtoken");
 
-const SECRET =
-  process.env.JWT_SECRET ||
-  "segredo_super_forte";
+const SECRET = process.env.JWT_SECRET || "segredo_super_forte";
 
-
-// ============================
-// LOGIN
-// ============================
 router.post("/", async (req, res) => {
-
   try {
-
     console.log("BODY LOGIN:", req.body);
 
-    let {
-      email,
-      senha
-    } = req.body;
+    let { email, senha } = req.body;
 
     // =========================
-    // NORMALIZA DADOS
+    // NORMALIZAÇÃO FORTE (IMPORTANTE)
     // =========================
-    email =
-      email?.trim().toLowerCase();
-
-    senha =
-      senha?.trim();
+    email = (email || "").trim().toLowerCase();
+    senha = (senha || "").trim();
 
     if (!email || !senha) {
-
       return res.status(400).json({
-        erro:
-          "Preencha todos os campos"
+        erro: "Preencha todos os campos"
       });
     }
 
     // =========================
     // BUSCA USUÁRIO
     // =========================
-    const user =
-      await Usuario.findOne({
-        email
-      }).select("+senha");
+    const user = await Usuario.findOne({ email }).select("+senha");
 
     console.log("USER:", user);
 
     if (!user) {
-
       return res.status(401).json({
-        erro:
-          "Usuário não encontrado"
+        erro: "Usuário não encontrado"
       });
     }
 
     // =========================
-    // USUÁRIO INATIVO
+    // STATUS
     // =========================
-    if (user.ativo === false) {
-
+    if (!user.ativo) {
       return res.status(403).json({
-        erro:
-          "Usuário desativado"
+        erro: "Usuário desativado"
       });
     }
 
     // =========================
-    // VALIDAR SENHA
+    // SEGURANÇA LOJA
     // =========================
-    if (
-      typeof user.compararSenha !==
-      "function"
-    ) {
-
-      console.log(
-        "compararSenha não existe"
-      );
-
-      return res.status(500).json({
-        erro:
-          "Método compararSenha não encontrado"
+    if (!user.lojaId) {
+      return res.status(400).json({
+        erro: "Usuário sem loja vinculada"
       });
     }
 
-    const senhaValida =
-      await user.compararSenha(
-        senha
-      );
+    // =========================
+    // SENHA SEGURA
+    // =========================
+    const senhaValida = await user.compararSenha(senha);
 
-    console.log(
-      "SENHA VALIDA:",
-      senhaValida
-    );
+    console.log("SENHA VALIDA:", senhaValida);
 
     if (!senhaValida) {
-
       return res.status(401).json({
-        erro:
-          "Senha incorreta"
+        erro: "Senha incorreta"
       });
     }
 
     // =========================
-    // BUSCAR LOJA
+    // BUSCA LOJA
     // =========================
-    const loja =
-      await Loja.findById(
-        user.lojaId
-      );
+    const loja = await Loja.findById(user.lojaId);
 
     console.log("LOJA:", loja);
 
     if (!loja) {
-
       return res.status(404).json({
-        erro:
-          "Loja não encontrada"
+        erro: "Loja não encontrada"
       });
     }
 
-    // =========================
-    // LOJA BLOQUEADA
-    // =========================
-    if (
-      loja.status ===
-      "bloqueado"
-    ) {
-
+    if (loja.status === "bloqueado") {
       return res.status(403).json({
-        erro:
-          "Loja bloqueada"
+        erro: "Loja bloqueada"
       });
     }
 
     // =========================
-    // TOKEN JWT
+    // TOKEN
     // =========================
-    const token =
-      jwt.sign(
-
-        {
-          id: user._id,
-          nome: user.nome,
-          email: user.email,
-          tipo: user.tipo,
-          lojaId: loja._id
-        },
-
-        SECRET,
-
-        {
-          expiresIn: "8h"
-        }
-      );
+    const token = jwt.sign(
+      {
+        id: user._id,
+        nome: user.nome,
+        email: user.email,
+        tipo: user.tipo,
+        lojaId: user.lojaId
+      },
+      SECRET,
+      { expiresIn: "8h" }
+    );
 
     // =========================
     // RESPOSTA
     // =========================
     return res.json({
-
       token,
-
       user: {
-
-        id:
-          user._id,
-
-        nome:
-          user.nome || "",
-
-        email:
-          user.email,
-
-        tipo:
-          user.tipo,
-
-        lojaId:
-          loja._id,
-
+        id: user._id,
+        nome: user.nome || "",
+        email: user.email,
+        tipo: user.tipo,
+        lojaId: user.lojaId,
         loja: {
-
-          id:
-            loja._id,
-
-          nome:
-            loja.nome,
-
-          documento:
-            loja.documento,
-
-          plano:
-            loja.plano,
-
-          status:
-            loja.status
+          id: loja._id,
+          nome: loja.nome,
+          documento: loja.documento,
+          plano: loja.plano,
+          status: loja.status
         }
       }
     });
 
   } catch (err) {
-
-    console.log(
-      "ERRO LOGIN COMPLETO:",
-      err
-    );
+    console.log("ERRO LOGIN COMPLETO:", err);
 
     return res.status(500).json({
-
-      erro:
-        "Erro interno no login",
-
-      detalhe:
-        err.message
+      erro: "Erro interno no login",
+      detalhe: err.message
     });
   }
 });

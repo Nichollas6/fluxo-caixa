@@ -11,7 +11,6 @@ const LojaSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
       lowercase: true
     },
@@ -24,7 +23,6 @@ const LojaSchema = new mongoose.Schema(
     documento: {
       type: String,
       required: true,
-      unique: true,
       trim: true
     },
 
@@ -45,47 +43,31 @@ const LojaSchema = new mongoose.Schema(
   }
 );
 
+// índice correto
+LojaSchema.index({ documento: 1 }, { unique: true });
+LojaSchema.index({ email: 1 }, { unique: true });
 
-// =========================
-// NORMALIZA CPF/CNPJ
-// =========================
-LojaSchema.pre("save", function () {
-
-  // normaliza email
-  if (this.email) {
-
-    this.email =
-      this.email
-      .trim()
-      .toLowerCase();
-  }
-
-  // normaliza documento
-  if (this.documento) {
-
-    this.documento =
-      this.documento.replace(/\D/g, "");
-
-    // valida tamanho
-    if (
-      this.documento.length < 11 ||
-      this.documento.length > 14
-    ) {
-
-      throw new Error(
-        "Documento inválido"
-      );
+// normalização segura
+LojaSchema.pre("save", function (next) {
+  try {
+    if (this.email) {
+      this.email = this.email.trim().toLowerCase();
     }
+
+    if (this.documento) {
+      this.documento = this.documento.replace(/\D/g, "");
+
+      if (this.documento.length < 11 || this.documento.length > 14) {
+        return next(new Error("Documento inválido"));
+      }
+    }
+
+    next();
+  } catch (err) {
+    next(err);
   }
 });
 
-
-// =========================
-// EXPORT
-// =========================
 module.exports =
   mongoose.models.Loja ||
-  mongoose.model(
-    "Loja",
-    LojaSchema
-  );
+  mongoose.model("Loja", LojaSchema);

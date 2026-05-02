@@ -11,15 +11,14 @@ const UsuarioSchema = new mongoose.Schema(
 
     email: {
       type: String,
-      required: [true, "Email é obrigatório"],
-      unique: true,
+      required: true,
       lowercase: true,
       trim: true
     },
 
     senha: {
       type: String,
-      required: [true, "Senha é obrigatória"],
+      required: true,
       select: false
     },
 
@@ -32,7 +31,7 @@ const UsuarioSchema = new mongoose.Schema(
     lojaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Loja",
-      required: [true, "Loja é obrigatória"]
+      required: true
     },
 
     ativo: {
@@ -45,71 +44,49 @@ const UsuarioSchema = new mongoose.Schema(
   }
 );
 
+// índice correto (evita bug de produção)
+UsuarioSchema.index({ email: 1 }, { unique: true });
 
-// =========================
-// HASH SENHA
-// =========================
-UsuarioSchema.pre(
-  "save",
-  async function (next) {
 
-    try {
-
-      // normaliza email
-      if (this.email) {
-
-        this.email =
-          this.email
-            .trim()
-            .toLowerCase();
-      }
-
-      // evita recriptografar
-      if (
-        !this.isModified("senha")
-      ) {
-        return next();
-      }
-
-      // hash senha
-      const salt =
-        await bcrypt.genSalt(10);
-
-      this.senha =
-        await bcrypt.hash(
-          this.senha,
-          salt
-        );
-
-      next();
-
-    } catch (err) {
-
-      next(err);
+// 🔐 HASH SENHA
+UsuarioSchema.pre("save", async function (next) {
+  try {
+    if (this.email) {
+      this.email = this.email.trim().toLowerCase();
     }
+
+    if (!this.isModified("senha")) return next();
+
+    const salt = await bcrypt.genSalt(10);
+    this.senha = await bcrypt.hash(this.senha, salt);
+
+    next();
+  } catch (err) {
+    next(err);
   }
-);
+});
 
+// 🔐 UPDATE SAFE (IMPORTANTE)
+UsuarioSchema.pre("findOneAndUpdate", async function (next) {
+  try {
+    const update = this.getUpdate();
 
-// =========================
-// COMPARAR SENHA
-// =========================
-UsuarioSchema.methods.compararSenha =
-  async function (senhaDigitada) {
+    if (update?.senha) {
+      const salt = await bcrypt.genSalt(10);
+      update.senha = await bcrypt.hash(update.senha, salt);
+    }
 
-    return await bcrypt.compare(
-      senhaDigitada,
-      this.senha
-    );
-  };
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
+// comparar senha
+UsuarioSchema.methods.compararSenha = async function (senhaDigitada) {
+  return bcrypt.compare(senhaDigitada, this.senha);
+};
 
-// =========================
-// EXPORT
-// =========================
 module.exports =
   mongoose.models.Usuario ||
-  mongoose.model(
-    "Usuario",
-    UsuarioSchema
-  );
+  mongoose.model("Usuario", UsuarioSchema);
