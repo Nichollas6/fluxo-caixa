@@ -47,47 +47,61 @@ const UsuarioSchema = new mongoose.Schema(
 
 
 // =========================
-// NORMALIZA EMAIL + HASH
+// HASH SENHA
 // =========================
-UsuarioSchema.pre("save", async function () {
+UsuarioSchema.pre(
+  "save",
+  async function (next) {
 
-  // normaliza email
-  if (this.email) {
+    try {
 
-    this.email =
-      this.email
-      .trim()
-      .toLowerCase();
+      // normaliza email
+      if (this.email) {
+
+        this.email =
+          this.email
+            .trim()
+            .toLowerCase();
+      }
+
+      // evita recriptografar
+      if (
+        !this.isModified("senha")
+      ) {
+        return next();
+      }
+
+      // hash senha
+      const salt =
+        await bcrypt.genSalt(10);
+
+      this.senha =
+        await bcrypt.hash(
+          this.senha,
+          salt
+        );
+
+      next();
+
+    } catch (err) {
+
+      next(err);
+    }
   }
-
-  // evita recriptografar
-  if (!this.isModified("senha")) {
-    return;
-  }
-
-  // gera hash
-  const salt =
-    await bcrypt.genSalt(10);
-
-  this.senha =
-    await bcrypt.hash(
-      this.senha,
-      salt
-    );
-});
+);
 
 
 // =========================
 // COMPARAR SENHA
 // =========================
 UsuarioSchema.methods.compararSenha =
-async function (senhaDigitada) {
+  async function (senhaDigitada) {
 
-  return await bcrypt.compare(
-    senhaDigitada,
-    this.senha
-  );
-};
+    return await bcrypt.compare(
+      senhaDigitada,
+      this.senha
+    );
+  };
 
 
 // =========================
