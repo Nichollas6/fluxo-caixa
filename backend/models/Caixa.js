@@ -71,7 +71,9 @@ const CaixaSchema = new mongoose.Schema(
 );
 
 
-// apenas 1 caixa aberto POR LOJA
+// ===============================
+// APENAS 1 CAIXA ABERTO POR LOJA
+// ===============================
 CaixaSchema.index(
   {
     lojaId: 1,
@@ -80,21 +82,32 @@ CaixaSchema.index(
   {
     unique: true,
     partialFilterExpression: {
-      status: { $eq: "aberto" }
+      status: "aberto"
     }
   }
 );
 
 
-// atualiza saldo automático
-CaixaSchema.pre("save", function () {
-  this.saldoAtual =
-    this.saldoInicial +
-    this.entradas -
-    this.saidas;
-});
+// ===============================
+// ATUALIZA SALDO AUTOMÁTICO
+// ===============================
+CaixaSchema.pre(
+  "save",
+  function (next) {
+
+    this.saldoAtual =
+      Number(this.saldoInicial || 0) +
+      Number(this.entradas || 0) -
+      Number(this.saidas || 0);
+
+    next();
+  }
+);
 
 
 module.exports =
   mongoose.models.Caixa ||
-  mongoose.model("Caixa", CaixaSchema);
+  mongoose.model(
+    "Caixa",
+    CaixaSchema
+  );

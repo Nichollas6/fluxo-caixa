@@ -5,7 +5,8 @@ const ContaSchema = new mongoose.Schema(
     lojaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Loja",
-      required: true
+      required: true,
+      index: true
     },
 
     descricao: {
@@ -43,6 +44,8 @@ const ContaSchema = new mongoose.Schema(
 
     categoria: {
       type: String,
+      trim: true,
+      lowercase: true,
       default: "geral"
     }
   },
@@ -51,6 +54,48 @@ const ContaSchema = new mongoose.Schema(
   }
 );
 
+
+// ===========================
+// INDEX PERFORMANCE
+// ===========================
+ContaSchema.index({
+  lojaId: 1,
+  data: -1
+});
+
+
+// ===========================
+// NORMALIZA DADOS
+// ===========================
+ContaSchema.pre(
+  "save",
+  function (next) {
+
+    if (this.descricao) {
+
+      this.descricao =
+        this.descricao.trim();
+    }
+
+    if (this.categoria) {
+
+      this.categoria =
+        this.categoria
+          .trim()
+          .toLowerCase();
+    }
+
+    this.valor =
+      Number(this.valor || 0);
+
+    next();
+  }
+);
+
+
 module.exports =
   mongoose.models.Conta ||
-  mongoose.model("Conta", ContaSchema);
+  mongoose.model(
+    "Conta",
+    ContaSchema
+  );

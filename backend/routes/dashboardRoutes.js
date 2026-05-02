@@ -12,7 +12,20 @@ const auth = require("../middleware/auth");
 // DASHBOARD MULTI LOJA
 // ================================
 router.get("/", auth, async (req, res) => {
+
   try {
+
+    // =========================
+    // VALIDA TOKEN
+    // =========================
+    if (
+      !req.user ||
+      !req.user.lojaId
+    ) {
+      return res.status(401).json({
+        erro: "Token inválido"
+      });
+    }
 
     const { mes } = req.query;
 
@@ -20,11 +33,11 @@ router.get("/", auth, async (req, res) => {
     // FILTROS
     // =========================
     let filtroVendas = {
-      lojaId: req.lojaId
+      lojaId: req.user.lojaId
     };
 
     let filtroContas = {
-      lojaId: req.lojaId,
+      lojaId: req.user.lojaId,
       pago: true
     };
 
@@ -53,15 +66,29 @@ router.get("/", auth, async (req, res) => {
           59
         );
 
+      // vendas
       filtroVendas.data = {
         $gte: inicio,
         $lte: fim
       };
 
-      filtroContas.dataPagamento = {
-        $gte: inicio,
-        $lte: fim
-      };
+      // contas
+      filtroContas.$or = [
+
+        {
+          dataPagamento: {
+            $gte: inicio,
+            $lte: fim
+          }
+        },
+
+        {
+          data: {
+            $gte: inicio,
+            $lte: fim
+          }
+        }
+      ];
     }
 
     // =========================
@@ -131,7 +158,7 @@ router.get("/", auth, async (req, res) => {
     // =========================
     // ORDENA GRÁFICO
     // =========================
-    const resultado =
+    const grafico =
       Object.values(resumo)
       .sort((a, b) =>
         a.dia - b.dia
@@ -182,7 +209,7 @@ router.get("/", auth, async (req, res) => {
     // =========================
     res.json({
 
-      grafico: resultado,
+      grafico,
 
       resumo: {
 
@@ -210,10 +237,10 @@ router.get("/", auth, async (req, res) => {
     res.status(500).json({
 
       erro:
+        err.message ||
         "Erro ao carregar dashboard"
     });
   }
 });
-
 
 module.exports = router;

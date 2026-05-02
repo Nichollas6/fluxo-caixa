@@ -2,7 +2,7 @@ module.exports = (req, res, next) => {
 
   try {
 
-    // verifica usuário autenticado
+    // usuário autenticado
     if (!req.user) {
 
       return res.status(401).json({
@@ -10,8 +10,11 @@ module.exports = (req, res, next) => {
       });
     }
 
-    // verifica tipo admin
-    if (req.user.tipo !== "admin") {
+    // valida tipo
+    if (
+      !req.user.tipo ||
+      req.user.tipo !== "admin"
+    ) {
 
       return res.status(403).json({
         erro: "Acesso negado"
@@ -24,11 +27,11 @@ module.exports = (req, res, next) => {
 
     console.log(
       "ERRO ADMIN:",
-      err.message
+      err
     );
 
     return res.status(500).json({
-      erro: "Erro interno"
+      erro: "Erro interno no middleware admin"
     });
   }
 };
