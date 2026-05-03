@@ -5,12 +5,28 @@ module.exports = (req, res, next) => {
   try {
 
     // =========================
-    // HEADER AUTHORIZATION
+    // DEBUG HEADERS
+    // =========================
+    console.log(
+      "HEADERS:",
+      req.headers
+    );
+
+    // =========================
+    // PEGA AUTH HEADER
     // =========================
     const authHeader =
-      req.headers.authorization;
+      req.headers.authorization ||
+      req.headers.Authorization;
 
-    // valida header
+    console.log(
+      "AUTH HEADER:",
+      authHeader
+    );
+
+    // =========================
+    // VALIDA HEADER
+    // =========================
     if (!authHeader) {
 
       return res.status(401).json({
@@ -19,7 +35,7 @@ module.exports = (req, res, next) => {
     }
 
     // =========================
-    // FORMATO BEARER TOKEN
+    // FORMATO: Bearer TOKEN
     // =========================
     const parts =
       authHeader.split(" ");
@@ -34,10 +50,17 @@ module.exports = (req, res, next) => {
     const [scheme, token] =
       parts;
 
-    // valida bearer
-    if (!/^Bearer$/i.test(scheme)) {
+    // =========================
+    // VALIDA BEARER
+    // =========================
+    if (
+      !/^Bearer$/i.test(
+        scheme
+      )
+    ) {
 
       return res.status(401).json({
+
         erro:
           "Formato correto: Bearer TOKEN"
       });
@@ -59,8 +82,13 @@ module.exports = (req, res, next) => {
         secret
       );
 
+    console.log(
+      "TOKEN DECODIFICADO:",
+      decoded
+    );
+
     // =========================
-    // VALIDA DADOS
+    // VALIDA PAYLOAD
     // =========================
     if (
       !decoded.id ||
@@ -68,13 +96,12 @@ module.exports = (req, res, next) => {
     ) {
 
       return res.status(401).json({
-        erro:
-          "Token inválido"
+        erro: "Token inválido"
       });
     }
 
     // =========================
-    // SALVA NO REQUEST
+    // SALVA DADOS
     // =========================
     req.user = {
 
@@ -85,7 +112,10 @@ module.exports = (req, res, next) => {
         decoded.lojaId,
 
       tipo:
-        decoded.tipo
+        decoded.tipo,
+
+      email:
+        decoded.email
     };
 
     req.userId =
@@ -97,13 +127,16 @@ module.exports = (req, res, next) => {
     req.tipo =
       decoded.tipo;
 
+    // =========================
+    // NEXT
+    // =========================
     next();
 
   } catch (err) {
 
     console.log(
       "❌ ERRO AUTH:",
-      err.message
+      err
     );
 
     return res.status(401).json({
