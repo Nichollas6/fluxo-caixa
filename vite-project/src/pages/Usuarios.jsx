@@ -13,19 +13,28 @@ export default function Usuarios() {
   const API =
     "https://fluxo-caixa-back.onrender.com";
 
-  // usuário logado
-  const user =
-    JSON.parse(
-      localStorage.getItem("user") || "{}"
-    );
-
-  // token JWT
+  // =========================
+  // TOKEN
+  // =========================
   const token =
     localStorage.getItem("token");
 
+  // =========================
+  // AXIOS CONFIG
+  // =========================
+  const api = axios.create({
+    baseURL: API,
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
   useEffect(() => {
 
+    console.log("TOKEN:", token);
+
     if (!token) {
+
       alert("Faça login novamente");
       return;
     }
@@ -42,23 +51,14 @@ export default function Usuarios() {
     try {
 
       const res =
-        await axios.get(
-
-          `${API}/usuarios`,
-
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`
-            }
-          }
-        );
+        await api.get("/usuarios");
 
       setUsuarios(res.data);
 
     } catch (err) {
 
       console.log(
+        "ERRO LISTAR:",
         err.response?.data || err
       );
 
@@ -89,41 +89,38 @@ export default function Usuarios() {
         return;
       }
 
-      await axios.post(
-
-        `${API}/usuarios`,
-
-        {
-          nome,
-          email,
-          senha,
-          tipo
-        },
-
-        {
-          headers: {
-            Authorization:
-              `Bearer ${token}`
+      const res =
+        await api.post(
+          "/usuarios",
+          {
+            nome,
+            email,
+            senha,
+            tipo
           }
-        }
+        );
+
+      console.log(
+        "USUÁRIO CRIADO:",
+        res.data
       );
 
       alert(
         "Usuário criado com sucesso"
       );
 
-      // limpa form
+      // limpa
       setNome("");
       setEmail("");
       setSenha("");
       setTipo("vendedor");
 
-      // recarrega lista
       carregar();
 
     } catch (err) {
 
       console.log(
+        "ERRO CRIAR:",
         err.response?.data || err
       );
 
@@ -227,6 +224,7 @@ export default function Usuarios() {
               >
 
                 <div>
+
                   <p className="font-semibold">
                     {u.nome || "Sem nome"}
                   </p>
@@ -234,12 +232,15 @@ export default function Usuarios() {
                   <p className="text-sm text-gray-600">
                     {u.email}
                   </p>
+
                 </div>
 
                 <div>
+
                   <span className="bg-gray-200 px-3 py-1 rounded text-sm">
                     {u.tipo}
                   </span>
+
                 </div>
 
               </div>
