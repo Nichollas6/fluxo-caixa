@@ -14,12 +14,17 @@ router.post("/", async (req, res) => {
     let { email, senha } = req.body;
 
     // =========================
-    // NORMALIZAÇÃO SEGURA
+    // NORMALIZAÇÃO FORTE
     // =========================
-    email = String(email || "").trim().toLowerCase();
-    senha = String(senha || "").trim();
+    const emailNormalizado = (email || "")
+      .normalize("NFKC")
+      .toLowerCase()
+      .trim()
+      .replace(/\s/g, "");
 
-    if (!email || !senha) {
+    const senhaNormalizada = (senha || "").trim();
+
+    if (!emailNormalizado || !senhaNormalizada) {
       return res.status(400).json({
         erro: "Preencha todos os campos"
       });
@@ -28,9 +33,11 @@ router.post("/", async (req, res) => {
     // =========================
     // BUSCA USUÁRIO
     // =========================
-    const user = await Usuario.findOne({ email }).select("+senha");
+    const user = await Usuario.findOne({
+      email: new RegExp(`^${emailNormalizado}$`, "i")
+    }).select("+senha");
 
-    console.log("USER:", user);
+    console.log("USER ENCONTRADO:", user);
 
     if (!user) {
       return res.status(401).json({
@@ -38,6 +45,9 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // =========================
+    // STATUS USUÁRIO
+    // =========================
     if (!user.ativo) {
       return res.status(403).json({
         erro: "Usuário desativado"
@@ -51,20 +61,9 @@ router.post("/", async (req, res) => {
     }
 
     // =========================
-    // VALIDA MÉTODO SENHA
+    // VERIFICA SENHA
     // =========================
-    if (typeof user.compararSenha !== "function") {
-      console.log("ERRO: compararSenha não existe no model");
-
-      return res.status(500).json({
-        erro: "Erro interno no sistema (senha)"
-      });
-    }
-
-    // =========================
-    // VALIDA SENHA
-    // =========================
-    const senhaValida = await user.compararSenha(senha);
+    const senhaValida = await user.compararSenha(senhaNormalizada);
 
     console.log("SENHA VALIDA:", senhaValida);
 
@@ -94,7 +93,7 @@ router.post("/", async (req, res) => {
     }
 
     // =========================
-    // TOKEN
+    // TOKEN JWT
     // =========================
     const token = jwt.sign(
       {

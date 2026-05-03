@@ -2,11 +2,7 @@ const mongoose = require("mongoose");
 
 const LojaSchema = new mongoose.Schema(
   {
-    nome: {
-      type: String,
-      required: true,
-      trim: true
-    },
+    nome: { type: String, required: true, trim: true },
 
     email: {
       type: String,
@@ -15,10 +11,7 @@ const LojaSchema = new mongoose.Schema(
       lowercase: true
     },
 
-    telefone: {
-      type: String,
-      default: ""
-    },
+    telefone: { type: String, default: "" },
 
     documento: {
       type: String,
@@ -38,16 +31,14 @@ const LojaSchema = new mongoose.Schema(
       default: "ativo"
     }
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
-// 🔥 índices (IMPORTANTE: só isso aqui, nada duplicado)
+// índices (IMPORTANTE: evitar duplicação falsa em produção)
 LojaSchema.index({ documento: 1 }, { unique: true });
 LojaSchema.index({ email: 1 }, { unique: true });
 
-// 🔥 normalização SEGURA (sem next)
+// normalização segura (SEM next)
 LojaSchema.pre("save", function () {
   if (this.email) {
     this.email = this.email.trim().toLowerCase();

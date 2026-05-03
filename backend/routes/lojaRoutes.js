@@ -11,40 +11,30 @@ router.post("/criar", async (req, res) => {
   try {
     let { nome, documento, email, senha, telefone } = req.body;
 
-    // =========================
-    // VALIDAÇÃO
-    // =========================
+    // validação
     if (!nome || !documento || !email || !senha) {
       return res.status(400).json({ erro: "Preencha todos os campos" });
     }
 
-    // =========================
-    // NORMALIZAÇÃO
-    // =========================
+    // normalização
     nome = String(nome).trim();
     documento = String(documento).replace(/\D/g, "");
     email = String(email).trim().toLowerCase();
     senha = String(senha).trim();
     telefone = telefone ? String(telefone).replace(/\D/g, "") : "";
 
-    // =========================
-    // VALIDA DOCUMENTO
-    // =========================
+    // valida documento
     if (documento.length < 11 || documento.length > 14) {
       return res.status(400).json({ erro: "Documento inválido" });
     }
 
-    // =========================
-    // VALIDA EMAIL
-    // =========================
+    // valida email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ erro: "Email inválido" });
     }
 
-    // =========================
-    // DUPLICIDADE
-    // =========================
+    // evita duplicidade REAL (case-safe)
     const lojaExiste = await Loja.findOne({ documento });
     if (lojaExiste) {
       return res.status(400).json({ erro: "Documento já cadastrado" });
@@ -55,9 +45,7 @@ router.post("/criar", async (req, res) => {
       return res.status(400).json({ erro: "Email já cadastrado" });
     }
 
-    // =========================
-    // CRIA LOJA
-    // =========================
+    // cria loja
     const loja = await Loja.create({
       nome,
       email,
@@ -67,9 +55,7 @@ router.post("/criar", async (req, res) => {
       status: "ativo"
     });
 
-    // =========================
-    // CRIA USUÁRIO ADMIN
-    // =========================
+    // cria usuário admin
     const usuario = await Usuario.create({
       nome,
       email,
@@ -79,15 +65,13 @@ router.post("/criar", async (req, res) => {
       lojaId: loja._id
     });
 
-    // =========================
-    // TOKEN
-    // =========================
+    // token
     const token = jwt.sign(
       {
         id: usuario._id,
-        nome,
-        email,
-        tipo: "admin",
+        nome: usuario.nome,
+        email: usuario.email,
+        tipo: usuario.tipo,
         lojaId: loja._id
       },
       SECRET,
@@ -99,9 +83,9 @@ router.post("/criar", async (req, res) => {
       token,
       user: {
         id: usuario._id,
-        nome,
-        email,
-        tipo: "admin",
+        nome: usuario.nome,
+        email: usuario.email,
+        tipo: usuario.tipo,
         lojaId: loja._id
       }
     });
