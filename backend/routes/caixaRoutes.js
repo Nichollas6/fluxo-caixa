@@ -89,6 +89,11 @@ router.post("/fechar", auth, async (req, res) => {
     caixa.status = "fechado";
     caixa.dataFechamento = new Date();
 
+    caixa.saldoAtual =
+      Number(caixa.saldoInicial) +
+      Number(caixa.entradas) -
+      Number(caixa.saidas);
+
     await caixa.save();
 
     return res.json({
