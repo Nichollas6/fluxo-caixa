@@ -6,17 +6,23 @@ const mongoose = require("mongoose");
 
 const app = express();
 
+// =========================
 // MIDDLEWARES
+// =========================
 app.use(cors());
 app.use(express.json());
 
-// VALIDA ENV
+// =========================
+// VERIFICA ENV
+// =========================
 if (!process.env.MONGO_URI) {
   console.log("❌ MONGO_URI NÃO DEFINIDA");
   process.exit(1);
 }
 
+// =========================
 // ROTAS
+// =========================
 app.use("/login", require("./routes/loginRoutes"));
 app.use("/loja", require("./routes/lojaRoutes"));
 app.use("/usuarios", require("./routes/usuarioRoutes"));
@@ -28,7 +34,9 @@ app.use("/caixa", require("./routes/caixaRoutes"));
 app.use("/dashboard", require("./routes/dashboardRoutes"));
 app.use("/contas", require("./routes/contaRoutes"));
 
+// =========================
 // HEALTH CHECK
+// =========================
 app.get("/", (req, res) => {
   res.json({
     status: true,
@@ -36,14 +44,18 @@ app.get("/", (req, res) => {
   });
 });
 
+// =========================
 // 404
+// =========================
 app.use((req, res) => {
   res.status(404).json({
     erro: "Rota não encontrada"
   });
 });
 
+// =========================
 // ERRO GLOBAL
+// =========================
 app.use((err, req, res, next) => {
   console.log(err);
 
@@ -52,7 +64,9 @@ app.use((err, req, res, next) => {
   });
 });
 
+// =========================
 // START
+// =========================
 const PORT = process.env.PORT || 3000;
 
 mongoose.connect(process.env.MONGO_URI, {
@@ -62,7 +76,7 @@ mongoose.connect(process.env.MONGO_URI, {
   console.log("🔥 Mongo conectado");
 
   app.listen(PORT, () => {
-    console.log(`🚀 Rodando na porta ${PORT}`);
+    console.log(`🚀 Servidor rodando na porta ${PORT}`);
   });
 })
 .catch((err) => {
