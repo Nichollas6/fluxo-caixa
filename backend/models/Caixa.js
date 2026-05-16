@@ -29,22 +29,26 @@ const CaixaSchema = new mongoose.Schema(
 
     saldoAtual: {
       type: Number,
-      default: 0
+      default: 0,
+      min: 0
     },
 
     entradas: {
       type: Number,
-      default: 0
+      default: 0,
+      min: 0
     },
 
     saidas: {
       type: Number,
-      default: 0
+      default: 0,
+      min: 0
     },
 
     totalVendas: {
       type: Number,
-      default: 0
+      default: 0,
+      min: 0
     },
 
     lucro: {
@@ -67,18 +71,20 @@ const CaixaSchema = new mongoose.Schema(
   }
 );
 
-// 🔥 apenas 1 caixa aberto por loja
+
+// apenas 1 caixa aberto por loja
 CaixaSchema.index(
   { lojaId: 1, status: 1 },
   {
     unique: true,
     partialFilterExpression: {
-      status: { $eq: "aberto" }
+      status: "aberto"
     }
   }
 );
 
-// 🔥 calcula saldo automaticamente
+
+// calcula saldo automaticamente
 CaixaSchema.pre("save", function (next) {
   this.saldoAtual =
     Number(this.saldoInicial || 0) +

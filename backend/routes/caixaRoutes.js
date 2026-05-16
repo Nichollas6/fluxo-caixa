@@ -47,6 +47,7 @@ router.post("/abrir", auth, async (req, res) => {
       lojaId: req.user.lojaId,
       abertoPor: req.user.email || req.user.id,
       saldoInicial: Number(req.body.saldoInicial || 0),
+      saldoAtual: Number(req.body.saldoInicial || 0),
       entradas: 0,
       saidas: 0,
       totalVendas: 0,
@@ -86,13 +87,13 @@ router.post("/fechar", auth, async (req, res) => {
       });
     }
 
+    caixa.saldoAtual =
+      Number(caixa.saldoInicial || 0) +
+      Number(caixa.entradas || 0) -
+      Number(caixa.saidas || 0);
+
     caixa.status = "fechado";
     caixa.dataFechamento = new Date();
-
-    caixa.saldoAtual =
-      Number(caixa.saldoInicial) +
-      Number(caixa.entradas) -
-      Number(caixa.saidas);
 
     await caixa.save();
 
