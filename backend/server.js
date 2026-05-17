@@ -9,7 +9,10 @@ const app = express();
 // =========================
 // MIDDLEWARES
 // =========================
-app.use(cors());
+app.use(cors({
+  origin: "*"
+}));
+
 app.use(express.json());
 
 // =========================
@@ -38,7 +41,7 @@ app.use("/contas", require("./routes/contaRoutes"));
 // HEALTH CHECK
 // =========================
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     status: true,
     message: "API rodando 🚀"
   });
@@ -57,7 +60,7 @@ app.use((req, res) => {
 // ERRO GLOBAL
 // =========================
 app.use((err, req, res, next) => {
-  console.log(err);
+  console.error("ERRO:", err);
 
   res.status(500).json({
     erro: err.message || "Erro interno"
@@ -65,21 +68,22 @@ app.use((err, req, res, next) => {
 });
 
 // =========================
-// START
+// PORTA DO RENDER
 // =========================
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 10000;
 
-mongoose.connect(process.env.MONGO_URI, {
-  dbName: "erp"
-})
-.then(() => {
-  console.log("🔥 Mongo conectado");
+// =========================
+// CONECTA MONGO E SOBE SERVER
+// =========================
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("🔥 Mongo conectado");
 
-  app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Servidor rodando na porta ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.log("❌ ERRO MONGO:", err.message);
+    process.exit(1);
   });
-})
-.catch((err) => {
-  console.log("❌ ERRO MONGO:", err.message);
-  process.exit(1);
-});
