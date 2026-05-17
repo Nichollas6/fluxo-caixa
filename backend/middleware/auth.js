@@ -2,9 +2,9 @@ const jwt = require("jsonwebtoken");
 
 module.exports = (req, res, next) => {
   try {
-    console.log("HEADERS:", req.headers);
-    console.log("AUTHORIZATION:", req.headers.authorization);
-
+    // =========================
+    // PEGAR HEADER
+    // =========================
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -13,6 +13,10 @@ module.exports = (req, res, next) => {
       });
     }
 
+    // =========================
+    // VALIDAR FORMATO
+    // Bearer TOKEN
+    // =========================
     const parts = authHeader.split(" ");
 
     if (parts.length !== 2) {
@@ -29,25 +33,37 @@ module.exports = (req, res, next) => {
       });
     }
 
+    // =========================
+    // VERIFICAR TOKEN
+    // =========================
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET || "segredo_super_forte"
     );
 
+    if (!decoded.id || !decoded.lojaId) {
+      return res.status(401).json({
+        erro: "Token inválido"
+      });
+    }
+
+    // =========================
+    // SALVAR DADOS
+    // =========================
     req.user = {
       id: decoded.id,
       lojaId: decoded.lojaId,
       tipo: decoded.tipo,
-      email: decoded.email
+      email: decoded.email || null
     };
 
     next();
 
   } catch (err) {
-    console.log("ERRO AUTH:", err);
+    console.log("ERRO AUTH:", err.message);
 
     return res.status(401).json({
-      erro: "Token inválido"
+      erro: "Token inválido ou expirado"
     });
   }
 };
