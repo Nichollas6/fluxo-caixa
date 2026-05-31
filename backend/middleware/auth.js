@@ -37,15 +37,11 @@ module.exports = (req, res, next) => {
     // VERIFICAR TOKEN
     // =========================
     const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "segredo_super_forte"
-    );
+  token,
+  process.env.JWT_SECRET || "segredo_super_forte"
+);
 
-    if (!decoded.id || !decoded.lojaId) {
-      return res.status(401).json({
-        erro: "Token inválido"
-      });
-    }
+console.log("DECODED:", decoded);
 
     // =========================
     // SALVAR DADOS
