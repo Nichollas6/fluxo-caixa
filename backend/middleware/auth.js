@@ -34,22 +34,42 @@ module.exports = (req, res, next) => {
     }
 
     // =========================
+    // VERIFICAR JWT_SECRET
+    // =========================
+    if (!process.env.JWT_SECRET) {
+      console.log("ERRO AUTH: JWT_SECRET não configurado");
+
+      return res.status(500).json({
+        erro: "Erro interno de autenticação"
+      });
+    }
+
+    // =========================
     // VERIFICAR TOKEN
     // =========================
     const decoded = jwt.verify(
-  token,
-  process.env.JWT_SECRET || "segredo_super_forte"
-);
+      token,
+      process.env.JWT_SECRET
+    );
 
-console.log("DECODED:", decoded);
+    console.log("DECODED:", decoded);
 
     // =========================
-    // SALVAR DADOS
+    // VALIDAR CAMPOS
+    // =========================
+    if (!decoded.id || !decoded.lojaId) {
+      return res.status(401).json({
+        erro: "Token inválido"
+      });
+    }
+
+    // =========================
+    // SALVAR DADOS NO REQUEST
     // =========================
     req.user = {
       id: decoded.id,
       lojaId: decoded.lojaId,
-      tipo: decoded.tipo,
+      tipo: decoded.tipo || null,
       email: decoded.email || null
     };
 
@@ -58,8 +78,20 @@ console.log("DECODED:", decoded);
   } catch (err) {
     console.log("ERRO AUTH:", err.message);
 
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({
+        erro: "Token expirado"
+      });
+    }
+
+    if (err.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        erro: "Token inválido"
+      });
+    }
+
     return res.status(401).json({
-      erro: "Token inválido ou expirado"
+      erro: "Falha na autenticação"
     });
   }
 };

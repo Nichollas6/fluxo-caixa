@@ -1,51 +1,65 @@
 const express = require("express");
 const router = express.Router();
-
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+
 const Loja = require("../models/Loja");
 const Usuario = require("../models/Usuario");
 
-const SECRET = process.env.JWT_SECRET || "segredo_super_forte";
+const SECRET = process.env.JWT_SECRET;
 
 router.post("/criar", async (req, res) => {
   try {
-    let { nome, documento, email, senha, telefone } = req.body;
-
-    // validação
-    if (!nome || !documento || !email || !senha) {
-      return res.status(400).json({ erro: "Preencha todos os campos" });
+    if (!SECRET) {
+      throw new Error("JWT_SECRET não configurado");
     }
 
-    // normalização
+    let { nome, documento, email, senha, telefone } = req.body;
+
+    if (!nome || !documento || !email || !senha) {
+      return res.status(400).json({
+        erro: "Preencha todos os campos"
+      });
+    }
+
     nome = String(nome).trim();
     documento = String(documento).replace(/\D/g, "");
     email = String(email).trim().toLowerCase();
     senha = String(senha).trim();
     telefone = telefone ? String(telefone).replace(/\D/g, "") : "";
 
-    // valida documento
     if (documento.length < 11 || documento.length > 14) {
-      return res.status(400).json({ erro: "Documento inválido" });
+      return res.status(400).json({
+        erro: "Documento inválido"
+      });
     }
 
-    // valida email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ erro: "Email inválido" });
+      return res.status(400).json({
+        erro: "Email inválido"
+      });
     }
 
-    // evita duplicidade REAL (case-safe)
     const lojaExiste = await Loja.findOne({ documento });
+
     if (lojaExiste) {
-      return res.status(400).json({ erro: "Documento já cadastrado" });
+      return res.status(400).json({
+        erro: "Documento já cadastrado"
+      });
     }
 
-    const usuarioExiste = await Usuario.findOne({ email });
+    const usuarioExiste = await Usuario.findOne({
+      email
+    });
+
     if (usuarioExiste) {
-      return res.status(400).json({ erro: "Email já cadastrado" });
+      return res.status(400).json({
+        erro: "Email já cadastrado"
+      });
     }
 
-    // cria loja
     const loja = await Loja.create({
       nome,
       email,
@@ -55,17 +69,17 @@ router.post("/criar", async (req, res) => {
       status: "ativo"
     });
 
-    // cria usuário admin
+    const senhaHash = await bcrypt.hash(senha, 10);
+
     const usuario = await Usuario.create({
       nome,
       email,
-      senha,
+      senha: senhaHash,
       tipo: "admin",
       ativo: true,
       lojaId: loja._id
     });
 
-    // token
     const token = jwt.sign(
       {
         id: usuario._id,
@@ -91,7 +105,7 @@ router.post("/criar", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("❌ ERRO CRIAR LOJA:", err);
+    console.log("❌ ERRO CRIAR LOJA:", err.message);
 
     return res.status(500).json({
       erro: "Erro ao criar loja",
